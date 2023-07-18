@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using PFMdotnet.Commands;
 using PFMdotnet.Database.Entities;
+using PFMdotnet.Models;
 
 namespace PFMdotnet.Mappings
 {
@@ -8,10 +9,11 @@ namespace PFMdotnet.Mappings
     {
         public AutoMapperProfile() {
 
-            CreateMap<TransactionEntity, Models.Transaction>();
-            CreateMap<Models.Transaction, TransactionEntity>();
+            CreateMap<TransactionEntity, Transaction>();
+            CreateMap<Transaction, TransactionEntity>();
             CreateMap<CreateTransactionCommand, TransactionEntity>();
 
+            CreateMap<PagedSortedList<TransactionEntity>, PagedSortedList<Transaction>>();
 
         }
     }

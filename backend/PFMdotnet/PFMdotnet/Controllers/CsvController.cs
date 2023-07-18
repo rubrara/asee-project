@@ -39,8 +39,6 @@ namespace PFMdotnet.Controllers
                                        
                     var records = csvReader.GetRecords<CreateTransactionCommand>().ToList();
 
-                    // mesto da  odi eden poo eden do baza, createtransBulk 
-
                     await _transactionService.CreateTransactionBulk(records);
                     
                 }

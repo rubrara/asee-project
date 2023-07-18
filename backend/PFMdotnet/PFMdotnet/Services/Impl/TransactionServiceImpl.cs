@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using PFMdotnet.Commands;
 using PFMdotnet.Database.Entities;
 using PFMdotnet.Database.Repositories;
@@ -45,6 +46,25 @@ namespace PFMdotnet.Services.Impl
             var result = await _transactionRepository.CreateBulk(entities);
 
             return _mapper.Map<List<Transaction>>(entities);
+        }
+
+        public async Task<Transaction> GetProduct(string transactionCode)
+        {
+            var transactionEntity = await _transactionRepository.Get(transactionCode);
+
+            if (transactionEntity == null)
+            {
+                return null;
+            }
+
+            return _mapper.Map<Models.Transaction>(transactionEntity);
+        }
+
+        public async Task<PagedSortedList<Transaction>> GetTransactions(int page = 1, int pageSize = 10)
+        {
+            var result = await _transactionRepository.List(page, pageSize);
+
+            return _mapper.Map<PagedSortedList<Models.Transaction>>(result);
         }
     }
 }

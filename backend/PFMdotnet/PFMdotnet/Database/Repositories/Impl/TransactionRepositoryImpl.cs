@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using PFMdotnet.Database.Entities;
+using PFMdotnet.Models;
 
 namespace PFMdotnet.Database.Repositories.Impl
 {
@@ -33,5 +34,28 @@ namespace PFMdotnet.Database.Repositories.Impl
         {
             return await _dbContext.Transactions.FirstOrDefaultAsync(p => p.Id == Id);
         }
+
+        public async Task<PagedSortedList<TransactionEntity>> List(int page = 1, int pageSize = 9)
+        {
+            var query = _dbContext.Transactions.AsQueryable();
+
+            var totalCount = query.Count();
+
+            var totalPages = (int)Math.Ceiling(totalCount * 1.0 / pageSize);
+
+            query = query.Skip((page - 1) * pageSize).Take(pageSize);
+
+            var items = await query.ToListAsync();
+
+            return new PagedSortedList<TransactionEntity>
+            {
+                Page = page,
+                PageSize = pageSize,
+                TotalCount = totalCount,
+                TotalPages = totalPages,
+                Items = items
+            };
+        }
     }
-}
+ }
+

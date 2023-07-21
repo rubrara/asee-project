@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using PFMdotnet.Database;
@@ -11,9 +12,10 @@ using PFMdotnet.Database;
 namespace PFMdotnet.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class TransactionDbContextModelSnapshot : ModelSnapshot
+    [Migration("20230719104135_InitDb")]
+    partial class InitDb
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -21,26 +23,6 @@ namespace PFMdotnet.Migrations
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
-
-            modelBuilder.Entity("PFMdotnet.Database.Entities.CategoryEntity", b =>
-                {
-                    b.Property<string>("Code")
-                        .HasMaxLength(64)
-                        .HasColumnType("character varying(64)");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(128)
-                        .HasColumnType("character varying(128)");
-
-                    b.Property<string>("ParentCode")
-                        .HasMaxLength(64)
-                        .HasColumnType("character varying(64)");
-
-                    b.HasKey("Code");
-
-                    b.ToTable("categories", (string)null);
-                });
 
             modelBuilder.Entity("PFMdotnet.Database.Entities.TransactionEntity", b =>
                 {
@@ -55,9 +37,6 @@ namespace PFMdotnet.Migrations
                         .IsRequired()
                         .HasMaxLength(128)
                         .HasColumnType("character varying(128)");
-
-                    b.Property<string>("CatCode")
-                        .HasColumnType("character varying(64)");
 
                     b.Property<string>("Currency")
                         .IsRequired()
@@ -84,23 +63,7 @@ namespace PFMdotnet.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("CatCode");
-
                     b.ToTable("transactions", (string)null);
-                });
-
-            modelBuilder.Entity("PFMdotnet.Database.Entities.TransactionEntity", b =>
-                {
-                    b.HasOne("PFMdotnet.Database.Entities.CategoryEntity", "Category")
-                        .WithMany("Transactions")
-                        .HasForeignKey("CatCode");
-
-                    b.Navigation("Category");
-                });
-
-            modelBuilder.Entity("PFMdotnet.Database.Entities.CategoryEntity", b =>
-                {
-                    b.Navigation("Transactions");
                 });
 #pragma warning restore 612, 618
         }

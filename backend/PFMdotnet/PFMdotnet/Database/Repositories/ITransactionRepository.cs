@@ -9,6 +9,8 @@ namespace PFMdotnet.Database.Repositories
         Task<List<TransactionEntity>> CreateBulk(List<TransactionEntity> transactions);
         Task<TransactionEntity> Get(string Id);
 
-        Task<PagedSortedList<TransactionEntity>> List(int page = 1, int pageSize = 9);
+        Task<TransactionPagedList<TransactionEntity>> GetTransactionsAsQueryable(SearchParams searchParams);
+
+        Task<TransactionEntity> AddCategoryToTransaction(string id, string catCode);
     }
 }

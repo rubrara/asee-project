@@ -11,9 +11,9 @@ using PFMdotnet.Database;
 
 namespace PFMdotnet.Migrations
 {
-    [DbContext(typeof(TransactionDbContext))]
-    [Migration("20230715140110_InitDb")]
-    partial class InitDb
+    [DbContext(typeof(AppDbContext))]
+    [Migration("20230720205914_AddCategory")]
+    partial class AddCategory
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
@@ -23,6 +23,26 @@ namespace PFMdotnet.Migrations
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
+
+            modelBuilder.Entity("PFMdotnet.Database.Entities.CategoryEntity", b =>
+                {
+                    b.Property<string>("Code")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<string>("ParentCode")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.HasKey("Code");
+
+                    b.ToTable("categories", (string)null);
+                });
 
             modelBuilder.Entity("PFMdotnet.Database.Entities.TransactionEntity", b =>
                 {
@@ -37,6 +57,9 @@ namespace PFMdotnet.Migrations
                         .IsRequired()
                         .HasMaxLength(128)
                         .HasColumnType("character varying(128)");
+
+                    b.Property<string>("CatCode")
+                        .HasColumnType("character varying(64)");
 
                     b.Property<string>("Currency")
                         .IsRequired()
@@ -63,7 +86,23 @@ namespace PFMdotnet.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("CatCode");
+
                     b.ToTable("transactions", (string)null);
+                });
+
+            modelBuilder.Entity("PFMdotnet.Database.Entities.TransactionEntity", b =>
+                {
+                    b.HasOne("PFMdotnet.Database.Entities.CategoryEntity", "Category")
+                        .WithMany("Transactions")
+                        .HasForeignKey("CatCode");
+
+                    b.Navigation("Category");
+                });
+
+            modelBuilder.Entity("PFMdotnet.Database.Entities.CategoryEntity", b =>
+                {
+                    b.Navigation("Transactions");
                 });
 #pragma warning restore 612, 618
         }

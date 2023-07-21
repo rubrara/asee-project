@@ -29,6 +29,7 @@ namespace PFMdotnet.Database.Configurations
             builder.Property(x => x.Currency).HasConversion<string>().IsRequired();
             builder.Property(x => x.Mcc);
             builder.Property(x => x.Kind).HasConversion<string>().IsRequired();
+            builder.HasOne(x => x.Category).WithMany(x => x.Transactions).HasForeignKey(x => x.CatCode);
         }
     }
 }

@@ -16,5 +16,9 @@ namespace PFMdotnet.Database.Entities
         public CurrencyEnum Currency { get; set; }
         public int? Mcc { get; set; }
         public KindEnum Kind { get; set; }
+
+        public CategoryEntity? Category { get; set; }
+
+        public string? CatCode { get; set; }
     }
 }

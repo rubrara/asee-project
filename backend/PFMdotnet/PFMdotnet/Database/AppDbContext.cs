@@ -5,23 +5,25 @@ using System.Reflection;
 
 namespace PFMdotnet.Database
 {
-    public class TransactionDbContext : DbContext
+    public class AppDbContext : DbContext
     {
         public DbSet<TransactionEntity> Transactions { get; set; }
+        public DbSet<CategoryEntity> Categories { get; set; }
 
-        public TransactionDbContext(DbContextOptions options) : base(options) 
+        public AppDbContext(DbContextOptions options) : base(options) 
         {
 
         }
 
-        public TransactionDbContext() { }
+        public AppDbContext() { }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             AppContext.SetSwitch("Npgsql.DisableDateTimeInfinityConversions", true);
-            modelBuilder.ApplyConfiguration(
-                new TransactionEntityTypeConfiguration()
-                );
+
+            modelBuilder.ApplyConfiguration(new TransactionEntityTypeConfiguration());
+            modelBuilder.ApplyConfiguration(new CategoryEntityTypeConfiguration());
+
             base.OnModelCreating(modelBuilder);
 
             modelBuilder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());

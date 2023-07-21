@@ -8,7 +8,7 @@ using PFMdotnet.Services.Impl;
 using System.Reflection;
 using System.Text.Json.Serialization;
 using System.Text.Json;
-using PFMdotnet.JsonConverter;
+using PFMdotnet.Helpers.JsonConverter;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -16,10 +16,12 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 builder.Services.AddScoped<ITransactionService, TransactionServiceImpl>();
 builder.Services.AddScoped<ITransactionRepository, TransactionRepositoryImpl>();
+builder.Services.AddScoped<ICategoryService, CategoryServiceImpl>();
+builder.Services.AddScoped<ICategoryRepository, CategoryRepositoryImpl>();
 
 builder.Services.AddAutoMapper(Assembly.GetExecutingAssembly());
 
-builder.Services.AddDbContext<TransactionDbContext>(opt =>
+builder.Services.AddDbContext<AppDbContext>(opt =>
 {
     opt.UseNpgsql(CreateConnectionString(builder.Configuration));
 });
@@ -31,20 +33,11 @@ builder.Services.AddControllers().AddJsonOptions(options =>
     options.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
     options.JsonSerializerOptions.Converters.Add(new DateOnlyJsonConverter());
 });
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
+
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
-
-
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
 
 app.UseAuthorization();
 InitializeDatabase(app);
@@ -80,6 +73,6 @@ static void InitializeDatabase(WebApplication app)
     {
         using var scope = app.Services.GetService<IServiceScopeFactory>().CreateScope();
 
-        scope.ServiceProvider.GetRequiredService<TransactionDbContext>().Database.Migrate();
+        scope.ServiceProvider.GetRequiredService<AppDbContext>().Database.Migrate();
     }
 }

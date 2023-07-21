@@ -1,7 +1,7 @@
 ﻿using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace PFMdotnet.JsonConverter
+namespace PFMdotnet.Helpers.JsonConverter
 {
     public class DateOnlyJsonConverter : JsonConverter<DateOnly>
     {

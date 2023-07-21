@@ -3,7 +3,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using PFMdotnet.Commands;
 using PFMdotnet.Database.Entities;
 using PFMdotnet.Database.Repositories;
-using PFMdotnet.Mappings;
+using PFMdotnet.Helpers.Mappings;
 using PFMdotnet.Models;
 
 namespace PFMdotnet.Services.Impl
@@ -13,10 +13,23 @@ namespace PFMdotnet.Services.Impl
 
         private readonly IMapper _mapper;
         private readonly ITransactionRepository _transactionRepository;
-        public TransactionServiceImpl(IMapper mapper, ITransactionRepository transactionRepository) {
+        private readonly ICategoryRepository _categoryRepository;
+        public TransactionServiceImpl(IMapper mapper, ITransactionRepository transactionRepository, ICategoryRepository categoryRepository)
+        {
             _mapper = mapper;
             _transactionRepository = transactionRepository;
+            _categoryRepository = categoryRepository;
         }
+
+        public async Task<Transaction> AddCategoryToTransaction(string id, string catCode)
+        {
+
+            var result = await _transactionRepository.AddCategoryToTransaction(id, catCode);
+
+            return  _mapper.Map<Transaction>(result);
+
+        }
+
         public async Task<Transaction> CreateTransaction(CreateTransactionCommand command)
         {
             var entity = _mapper.Map<TransactionEntity>(command);
@@ -48,7 +61,7 @@ namespace PFMdotnet.Services.Impl
             return _mapper.Map<List<Transaction>>(entities);
         }
 
-        public async Task<Transaction> GetProduct(string transactionCode)
+        public async Task<Transaction> GetTransaction(string transactionCode)
         {
             var transactionEntity = await _transactionRepository.Get(transactionCode);
 
@@ -57,14 +70,15 @@ namespace PFMdotnet.Services.Impl
                 return null;
             }
 
-            return _mapper.Map<Models.Transaction>(transactionEntity);
+            return _mapper.Map<Transaction>(transactionEntity);
         }
 
-        public async Task<PagedSortedList<Transaction>> GetTransactions(int page = 1, int pageSize = 10)
+        public async Task<TransactionPagedList<TransactionEntity>> GetTransactionsAsQueriable(SearchParams searchParams)
         {
-            var result = await _transactionRepository.List(page, pageSize);
+            var result = await _transactionRepository.GetTransactionsAsQueryable(searchParams);
 
-            return _mapper.Map<PagedSortedList<Models.Transaction>>(result);
+            return result;
+
         }
     }
 }

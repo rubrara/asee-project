@@ -16,7 +16,8 @@ namespace PFMdotnet.Helpers.Mappings
             CreateMap<CreateTransactionCommand, TransactionEntity>();
 
             CreateMap<TransactionPagedList<TransactionEntity>, TransactionPagedList<Transaction>>();
-
+            CreateMap<ReturnDTO<Transaction>, ReturnDTO<TransactionEntity>>();
+            CreateMap<ReturnDTO<TransactionEntity>, ReturnDTO<Transaction>>();
 
             // Categorries
             CreateMap<CategoryEntity, Category>();

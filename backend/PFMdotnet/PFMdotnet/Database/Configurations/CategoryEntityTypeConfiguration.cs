@@ -23,6 +23,7 @@ namespace PFMdotnet.Database.Configurations
             builder.Property(x => x.Code).IsRequired().HasMaxLength(64);
             builder.Property(x => x.ParentCode).IsRequired(false).HasMaxLength(64);
             builder.Property(x => x.Name).HasMaxLength(128);
+            builder.HasMany(x => x.Transactions);
         }
     }
 }

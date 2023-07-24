@@ -21,12 +21,13 @@ namespace PFMdotnet.Services.Impl
             _categoryRepository = categoryRepository;
         }
 
-        public async Task<Transaction> AddCategoryToTransaction(string id, string catCode)
+        public async Task<ReturnDTO<Transaction>> AddCategoryToTransaction(string id, string catCode)
         {
 
             var result = await _transactionRepository.AddCategoryToTransaction(id, catCode);
 
-            return  _mapper.Map<Transaction>(result);
+            return _mapper.Map<ReturnDTO<Transaction>>(result);
+
 
         }
 
@@ -44,7 +45,7 @@ namespace PFMdotnet.Services.Impl
             return _mapper.Map<Models.Transaction>(result);
         }
 
-        public async Task<List<Transaction>> CreateTransactionBulk(List<CreateTransactionCommand> commands)
+        public async Task<AfterBulkAdd<TransactionEntity>> CreateTransactionBulk(List<CreateTransactionCommand> commands)
         {
 
             var entities = _mapper.Map<List<TransactionEntity>>(commands);
@@ -58,7 +59,7 @@ namespace PFMdotnet.Services.Impl
 
             var result = await _transactionRepository.CreateBulk(entities);
 
-            return _mapper.Map<List<Transaction>>(entities);
+            return result;
         }
 
         public async Task<Transaction> GetTransaction(string transactionCode)

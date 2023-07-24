@@ -1,6 +1,9 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using PFMdotnet.Database.Entities;
+using PFMdotnet.Helpers;
 using PFMdotnet.Models;
+using System.Net;
+using System.Web.Http;
 
 namespace PFMdotnet.Database.Repositories.Impl
 {
@@ -16,10 +19,31 @@ namespace PFMdotnet.Database.Repositories.Impl
             _categoryRepository = categoryRepository;   
         }
 
-        public async Task<TransactionEntity> AddCategoryToTransaction(string id, string catCode)
+        public async Task<ReturnDTO<TransactionEntity>> AddCategoryToTransaction(string id, string catCode)
         {
-            var transactionEntity = await Get(id);
-            var categoryEntity = await _categoryRepository.FindByCode(catCode);
+
+            List<string> errors = new();
+
+            TransactionEntity transactionEntity = await Get(id);
+            if (transactionEntity == null)
+            {
+                errors.Add(string.Format("The Transaction Id: {0} doesn't exist", id));
+            };
+
+
+            var categoryEntity = await _dbContext.Categories.FirstOrDefaultAsync(c => c.Code.Equals(catCode));
+            if (categoryEntity == null) {
+                errors.Add(string.Format("The Category Code: {0} doesn't exist", catCode));
+            }
+
+            if (errors.Count != 0)
+            {
+                return new ReturnDTO<TransactionEntity>
+                {
+                    Process = string.Format("Failed to add Category: '{0}' to Transacton: '{1}'", catCode, id),
+                    Errors = errors
+                };
+            }  
 
             transactionEntity.CatCode = catCode;
             transactionEntity.Category = categoryEntity;
@@ -30,7 +54,11 @@ namespace PFMdotnet.Database.Repositories.Impl
 
             await _dbContext.SaveChangesAsync();
 
-            return transactionEntity;
+            return new ReturnDTO<TransactionEntity>
+            {
+                Process = string.Format("Adding Category: '{0}' to Transacton: '{1}'", catCode, id),
+                Value = transactionEntity
+            };
 
         }
 
@@ -43,18 +71,46 @@ namespace PFMdotnet.Database.Repositories.Impl
             return transaction;
         }
 
-        public async Task<List<TransactionEntity>> CreateBulk(List<TransactionEntity> transactions)
+        public async Task<AfterBulkAdd<TransactionEntity>> CreateBulk(List<TransactionEntity> transactions)
         {
-            await _dbContext.Transactions.AddRangeAsync(transactions);
+            int chunkSize = 500;
+            int total = transactions.Count;
+            var chunks = ListToChunks.ChunkList(transactions, chunkSize);
 
-            await _dbContext.SaveChangesAsync();
+            try
+            {
+                foreach (var chunk in chunks)
+                {
+                    await _dbContext.Transactions.AddRangeAsync(chunk);
+                    await _dbContext.SaveChangesAsync();
+                }
 
-            return transactions;
+
+                return new AfterBulkAdd<TransactionEntity>
+                {
+                    toAdd = "Transactions",
+                    totalRowsAdded = total,
+                    rowExample = transactions.ElementAt(0)
+                };
+
+            } catch (Exception)
+            {
+                return new AfterBulkAdd<TransactionEntity>
+                {
+                    toAdd = "Transactions",
+                    totalRowsAdded = 0,
+                    Error = "There was an error trying to add the transactions!"
+                };
+            }
+            
         }
 
         public async Task<TransactionEntity> Get(string Id)
         {
-            return await _dbContext.Transactions.FirstOrDefaultAsync(p => p.Id == Id);
+
+            var res = await _dbContext.Transactions.FirstOrDefaultAsync(p => p.Id == Id);
+
+            return res;
         }
 
         
@@ -122,6 +178,7 @@ namespace PFMdotnet.Database.Repositories.Impl
                     default:
                         transactions = searchParams.sortOrder == SortOrder.Asc ?
                             transactions.OrderBy(t => t.Id) : transactions.OrderByDescending(t => t.Id);
+                        searchParams.sortBy = "id";
                         break;
                 }
             }

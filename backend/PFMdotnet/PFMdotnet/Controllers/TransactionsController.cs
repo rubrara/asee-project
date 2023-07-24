@@ -6,6 +6,7 @@ using PFMdotnet.Helpers.ParseCSV;
 using PFMdotnet.Models;
 using PFMdotnet.Services;
 using System.Globalization;
+using System.Linq.Expressions;
 
 namespace PFMdotnet.Controllers
 {
@@ -29,7 +30,7 @@ namespace PFMdotnet.Controllers
             [FromQuery] int? page, 
             [FromQuery] int? pageSize, 
             [FromQuery] string? sortBy, 
-            [FromQuery] SortOrder sortOrder,
+            [FromQuery] SortOrder? sortOrder,
             [FromQuery] string? startDate,
             [FromQuery] string? endDate,
             [FromQuery] string? kindsString
@@ -44,26 +45,38 @@ namespace PFMdotnet.Controllers
 
                 foreach (string kind in kindsArray)
                 {
-                    kinds.Add(Enum.Parse<KindEnum>(kind));
+                    try
+                    {
+                        kinds.Add(Enum.Parse<KindEnum>(kind));
+                    }
+                    catch(Exception)
+                    {
+                        return BadRequest(new
+                        {
+                            Message = "A Transaction Kind you entered is Invalid"
+                        });
+                    }
                 }
             } else
             {
                 kinds = Enum.GetValues(typeof(KindEnum)).Cast<KindEnum>().ToList();
             }
 
+            page = page > 0 ? page : 1;
+            pageSize = (pageSize < 1 || pageSize == null) ? 5 : pageSize > 50 ? 50 : pageSize;
+
             _logger.LogInformation("Returning {page}. page of transactions", page);
-
-            SearchParams searchParams = new();
-
-            searchParams.page = page ?? 1;
-            searchParams.pageSize = pageSize ?? 10;
-            searchParams.sortBy = sortBy;
-            searchParams.sortOrder = sortOrder;
-            searchParams.startDate = string.IsNullOrEmpty(startDate) ? DateOnly.MinValue : DateOnly.Parse(startDate);
-            searchParams.endDate = string.IsNullOrEmpty(endDate) ? DateOnly.MaxValue : DateOnly.Parse(endDate);
-            searchParams.kinds = kinds;
-
-            var result = await _transactionService.GetTransactionsAsQueriable(searchParams);
+         
+            var result = await _transactionService.GetTransactionsAsQueriable(new SearchParams()
+            {
+                page = (int)page,
+                pageSize = (int)pageSize,
+                sortBy = sortBy,
+                sortOrder = (SortOrder)(sortOrder != null ? sortOrder : SortOrder.Asc),
+                startDate = string.IsNullOrEmpty(startDate) ? DateOnly.MinValue : DateOnly.Parse(startDate),
+                endDate = string.IsNullOrEmpty(endDate) ? DateOnly.MaxValue : DateOnly.Parse(endDate),
+                kinds = kinds
+            });
 
             return Ok(result);
         }
@@ -73,25 +86,27 @@ namespace PFMdotnet.Controllers
         public async Task<IActionResult> ImportTransactions(IFormFile file)
         {
 
-            await _transactionService.CreateTransactionBulk(CsvParse<CreateTransactionCommand>.ToList(file));
+            var res = await _transactionService.CreateTransactionBulk(CsvParse<CreateTransactionCommand>.ToList(file));
 
-            return Ok("Transactions imported successfully.");
+            return Ok(res);
         }
 
         [HttpPost]
         [Route("{id}/categorize")]
         public async Task<IActionResult> CategorizeTransaction([FromRoute] string id, [FromQuery] string catCode)
         {
-            try {
-                var result = await _transactionService.AddCategoryToTransaction(id, catCode);
-                return Ok(result);
-            } catch (Exception ex)
-            {
-                return BadRequest("The transaction ID and/or Caterory Code does not exist!");
-            }
             
+            var result = await _transactionService.AddCategoryToTransaction(id, catCode);
 
-            
+            if (result.Errors.Count != 0)
+            {
+                Console.WriteLine(result.Errors.Count);
+                return NotFound(result);
+            }
+
+            result.Errors.Add("None");
+
+            return Ok(result);   
 
         }
 

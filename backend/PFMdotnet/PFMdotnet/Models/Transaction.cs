@@ -15,6 +15,8 @@ namespace PFMdotnet.Models
         public int? Mcc { get; set; }    
         public KindEnum Kind { get; set; }
 
+        public string? CatCode { get; set; }
+
 
     }
 }

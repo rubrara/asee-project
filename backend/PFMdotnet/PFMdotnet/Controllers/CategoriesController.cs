@@ -24,9 +24,9 @@ namespace PFMdotnet.Controllers
         [Route("import")]
         public async Task<IActionResult> ImportCategories(IFormFile file)
         {
-            await _categoryService.CreateCategoryBulk(CsvParse<CreateCategoryCommand>.ToList(file));
+            var res = await _categoryService.CreateCategoryBulk(CsvParse<CreateCategoryCommand>.ToList(file));
 
-            return Ok("Transactions imported successfully.");
+            return Ok(res);
         }
         
 

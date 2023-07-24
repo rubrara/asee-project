@@ -43,3 +43,7 @@ C:\Users\koki_\source\repos\asee-project\backend\PFMdotnet\PFMdotnet\obj\Debug\n
 C:\Users\koki_\source\repos\asee-project\backend\PFMdotnet\PFMdotnet\obj\Debug\net6.0\PFMdotnet.pdb
 C:\Users\koki_\source\repos\asee-project\backend\PFMdotnet\PFMdotnet\obj\Debug\net6.0\PFMdotnet.genruntimeconfig.cache
 C:\Users\koki_\source\repos\asee-project\backend\PFMdotnet\PFMdotnet\obj\Debug\net6.0\ref\PFMdotnet.dll
+C:\Users\koki_\source\repos\asee-project\backend\PFMdotnet\PFMdotnet\bin\Debug\net6.0\System.Net.Http.Formatting.dll
+C:\Users\koki_\source\repos\asee-project\backend\PFMdotnet\PFMdotnet\bin\Debug\net6.0\System.Web.Http.dll
+C:\Users\koki_\source\repos\asee-project\backend\PFMdotnet\PFMdotnet\bin\Debug\net6.0\Newtonsoft.Json.dll
+C:\Users\koki_\source\repos\asee-project\backend\PFMdotnet\PFMdotnet\bin\Debug\net6.0\Newtonsoft.Json.Bson.dll

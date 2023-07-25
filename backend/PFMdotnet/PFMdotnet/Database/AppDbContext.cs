@@ -12,7 +12,7 @@ namespace PFMdotnet.Database
 
         public AppDbContext(DbContextOptions options) : base(options) 
         {
-
+            
         }
 
         public AppDbContext() { }

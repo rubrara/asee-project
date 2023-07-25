@@ -1,10 +1,14 @@
 ﻿using AutoMapper;
-using Newtonsoft.Json.Linq;
+using Microsoft.AspNetCore.SignalR;
 using PFMdotnet.Commands;
 using PFMdotnet.Database.Entities;
 using PFMdotnet.Database.Enums;
 using PFMdotnet.Database.Repositories;
+using PFMdotnet.Helpers.SearchReturnObjects.Analytics;
+using PFMdotnet.Helpers.SearchReturnObjects.Categories;
 using PFMdotnet.Models;
+using PFMdotnet.Models.Analytics;
+using System.Reflection.Emit;
 
 namespace PFMdotnet.Services.Impl
 {
@@ -30,38 +34,146 @@ namespace PFMdotnet.Services.Impl
             }
 
 
-
-            var result = await _categoryRepository.CreateBulk(entities);
+            int chunkSize = 200;
+            var result = await _categoryRepository.CreateBulk(entities, chunkSize);
 
             return result;
         }
 
 
-        // TODO 
-        public async Task<ReturnDTO<AnalyticsGroup>> GetAnalytics(AnalyticsSearchParams searchParams)
+        public async Task<AnalyticsReturnObject> GetAnalytics(AnalyticsSearchParams searchParams)
         {
             var categoryCode = searchParams.Catcode;
-
             var categories = await _categoryRepository.GetAnalyticsAsync(categoryCode);
 
-            string process = "Getting Analytics view of Transactions by Category";
-            var returnDto = new ReturnDTO<AnalyticsGroup> { Process = process };
+            List<string> errors = new();
+            var result = new AnalyticsReturnObject()
+            {
+                Message = "Retrieve spending analytics by category or by subcategories witin category"
+            };
 
-            string error = "There are NOT any Transactions on that Category Code";
+            DateOnly startDate;
+            DateOnly endDate;
+
+            if (string.IsNullOrEmpty(searchParams.StartDate))
+            {
+                startDate = DateOnly.MinValue;
+
+            }
+            else if (!DateOnly.TryParse(searchParams.StartDate, out startDate))
+            {
+                errors.Add(string.Format("Invalid date format for the StartDate: '{0}'. Please provide a valid date in the format 'YYYY-MM-DD'.", searchParams.StartDate));
+
+            }
+
+            if (string.IsNullOrEmpty(searchParams.EndDate))
+            {
+                endDate = DateOnly.MaxValue;
+
+            }
+            else if (!DateOnly.TryParse(searchParams.EndDate, out endDate))
+            {
+                errors.Add(string.Format("Invalid date format for the EndDate: '{0}'. Please provide a valid date in the format 'YYYY-MM-DD'.", searchParams.EndDate));
+            }
+
+            List<DirectionEnum> directions = new();
+            DirectionEnum direction = DirectionEnum.d;
+
+            if (string.IsNullOrEmpty(searchParams.Direction))
+            {
+                directions = Enum.GetValues(typeof(DirectionEnum)).Cast<DirectionEnum>().ToList();
+
+            } else if (!Enum.TryParse(searchParams.Direction, true, out direction))
+            {
+                errors.Add(string.Format("'{0}' is NOT part of the Direction enum.", searchParams.Direction));
+            }
+
+            
 
             if (categories.Count == 0)
             {
-                returnDto.Errors = new() { error };
-                return returnDto;
+                errors.Add("There are NOT any Transactions on that Category Code");
             }
 
-            var startDate = string.IsNullOrEmpty(searchParams.StartDate) ? DateOnly.MinValue : DateOnly.Parse(searchParams.StartDate);
-            var endDate = string.IsNullOrEmpty(searchParams.EndDate) ? DateOnly.MaxValue : DateOnly.Parse(searchParams.EndDate);
-            List<DirectionEnum> directions = searchParams.Direction != null
-                ? new() { searchParams.Direction.Value }
-                : Enum.GetValues<DirectionEnum>().ToList();
 
-            var groupedAnalytics = new Dictionary<string, Analytics>();
+            if (errors.Any())
+            {
+                result.Errors = errors;
+
+                return result;
+            }
+
+            directions.Add(direction);
+
+
+            do
+            {
+                if (categoryCode != null)
+                {
+
+                    if (_categoryRepository.FindByCode(categoryCode) == null)
+                    {
+                        errors.Add(string.Format("The Category with code: '{0}' doesn't exist", categoryCode));
+                        break;
+                    }
+
+                    var tmpCats = categories.Where(c => c.ParentCode.Equals(categoryCode)).ToList();
+
+
+                    double amountToAdd = 0;
+                    int countToAdd = 0;
+
+                    
+
+                    if (tmpCats.Any())
+                    {
+                        foreach (var cat in tmpCats)
+                        {
+                            var transactions = cat.Transactions
+                                .Where(t => directions.Contains(t.Direction) && (t.Date > startDate && t.Date < endDate))
+                                .ToList();
+
+                            amountToAdd += transactions.Sum(t => t.Amount);
+                            countToAdd = transactions.Count();
+                        }
+                    }
+
+                    var category = categories.Find(c => c.Code.Equals(categoryCode));
+
+                    var categoryTransactions = category.Transactions
+                                .Where(t => directions.Contains(t.Direction) && (t.Date > startDate && t.Date < endDate))
+                                .ToList();
+
+                    
+
+                    var amountFromCat = categoryTransactions.Sum(t => t.Amount);
+                    var countFromCat = categoryTransactions.Count();
+
+                    if(countFromCat + countToAdd == 0)
+                    {
+                        result.Result = "The are not any Transactions for the category code given the filters";
+                        return result;
+                    }
+
+
+                    result.Analytics = new AnalyticsDto()
+                    {
+                        CatCode = categoryCode,
+                        Amount = amountFromCat + amountToAdd,
+                        Count = countFromCat + countToAdd
+                    };
+
+                    return result;
+                }
+
+            } while (false);            
+
+           
+
+
+            List<string> childCategories = new();
+
+            var groupedAnalytics = new Dictionary<string, AnalyticsDto>();
 
             foreach (var cat in categories)
             {
@@ -76,6 +188,8 @@ namespace PFMdotnet.Services.Impl
 
                 if (!string.IsNullOrEmpty(cat.ParentCode))
                 {
+                    childCategories.Add(cat.Code);
+
                     if (!groupedAnalytics.TryGetValue(cat.ParentCode, out var parentAnalytics))
                     {
                         parentAnalytics = new()
@@ -110,26 +224,126 @@ namespace PFMdotnet.Services.Impl
 
             if (groupedAnalytics.Count == 0)
             {
-                returnDto.Errors = new() { error };
 
-                return returnDto;
+                result.Result = "The database doesn't contain the spendings given the filters";
+
+                return result;
             }
 
+            var children = new AnalyticsGroup();
+            var parents = new AnalyticsGroup();
 
-            var value = new AnalyticsGroup();
-            
-            value.Group = groupedAnalytics.Values.ToList();
+            foreach (var analytics in groupedAnalytics)
+            {
+                if (childCategories.Contains(analytics.Key))
+                {
+                    children.Groups.Add(analytics.Value);
+                } else
+                {
+                    parents.Groups.Add(analytics.Value);
+                }
+            }
 
-            returnDto.Value = value;
+            result.top_level = parents.Groups.Any() ? parents : null;
+            result.sub_category = children.Groups.Any() ? children : null;
 
-            return returnDto;
+            return result;
         }
 
-        public async Task<Category> GetCategory(string catCode)
+        public async Task<CategoriesReturnDto> GetCategoriesAsQueriable(string parentId)
         {
-            var res = await _categoryRepository.FindByCode(catCode);
+            // _mapper.Map<Category>(category)
+            var categories = _mapper.Map<List<Category>>( await _categoryRepository.GetCategoriesAsync(parentId));
+            var res = new CategoriesReturnDto()
+            {
+                Message = "Getting the top-level categories from database"
+            };
 
-            return _mapper.Map<Category>(res);
+            if(parentId != null)
+            {
+
+                res.Message = string.Format("Getting the sub-categories for category: {0}", parentId);
+
+                if (await _categoryRepository.FindByCode(parentId) == null)
+                {
+                    res.Errors = new()
+                    {
+                        string.Format("'{0}' doesn't exist in the database", parentId)
+                    };
+
+                    return res;
+                }
+
+                if(!categories.Any())
+                {
+                    res.Result = string.Format("'{0}' doesn't have any sub-categories", parentId);
+
+                    return res;
+                }
+
+                res.Categories = new();
+
+                foreach (var category in categories)
+                {
+                    res.Categories.Add(category);
+                }
+
+                return res;
+            }
+            else
+            {
+                if(!categories.Any()) {
+                    res.Result = "There are not any top-level categories";
+                    return res;
+                }
+
+                res.Categories = new();
+
+                foreach (var category in categories)
+                {
+                    res.Categories.Add(category);
+                }
+
+                return res;
+            }
+            
+        }
+
+        public async Task<CategoriesReturnDto> GetCategory(string catCode)
+        {
+
+            var category = await _categoryRepository.FindByCode(catCode);
+
+            var res = new CategoriesReturnDto()
+            {
+                Message = string.Format("Getting Category by code: '{0}'", catCode)
+            };
+
+            if (string.IsNullOrEmpty(catCode))
+            {
+
+                res.Errors = new()
+                {
+                    "The category code MUST NOT be null or empty!"
+                };
+
+                return res;
+
+            }
+
+            if (category == null)
+            {
+                res.Errors = new()
+                {
+                    string.Format("There is NOT any categories with code: '{0}'", catCode)
+                };
+
+                return res;
+            }
+
+            res.Category = _mapper.Map<Category>(category);
+
+            return res;
         }
     }
 }

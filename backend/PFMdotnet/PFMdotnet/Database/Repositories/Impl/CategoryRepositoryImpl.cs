@@ -16,42 +16,51 @@ namespace PFMdotnet.Database.Repositories.Impl
             _dbContext = context;
         }
 
-        public async Task<AfterBulkAdd<CategoryEntity>> CreateBulk(List<CategoryEntity> categories)
+        public async Task<AfterBulkAdd<CategoryEntity>> CreateBulk(List<CategoryEntity> categories, int chunkSize)
         {
 
-            int chunkSize = 500;
             int total = categories.Count;
-            var chunks = ListToChunks.ChunkList(categories, chunkSize);
+            int totalAdded = 0;
+            int totalUpdated = 0;
 
-            try
+            var uniqueIds = categories.Select(c => c.Code).ToList();
+
+            var existingCategories = _dbContext.Categories
+                .Where(c => uniqueIds.Contains(c.Code))
+                .ToDictionary(t => t.Code);
+
+            var newCategories = categories.Where(c => !existingCategories.ContainsKey(c.Code)).ToDictionary(c => c.Code);
+
+            for (int i = 0; i < total; i += chunkSize)
             {
-                foreach (var chunk in chunks)
+
+                var chunkNew = newCategories.Values.ToList().Skip(i).Take(chunkSize).ToList();
+                var chunkExisting = existingCategories.Values.ToList().Skip(i).Take(chunkSize).ToList();
+
+                if (chunkNew.Any())
                 {
-                    await _dbContext.Categories.AddRangeAsync(chunk);
-                    await _dbContext.SaveChangesAsync();
+                    await _dbContext.Categories.AddRangeAsync(chunkNew);
+                    totalAdded += chunkNew.Count();
                 }
 
-
-                return new AfterBulkAdd<CategoryEntity>
+                if (chunkExisting.Any())
                 {
-                    toAdd = "Categories",
-                    totalRowsAdded = total,
-                    rowExample = categories.ElementAt(0)
-                };
+                    _dbContext.Categories.UpdateRange(chunkExisting);
+                    totalUpdated += chunkExisting.Count();
+                }
+
+                await _dbContext.SaveChangesAsync();
             }
-            catch (Exception)
+
+            return new AfterBulkAdd<CategoryEntity>
             {
-                return new AfterBulkAdd<CategoryEntity>
-                {
-                    toAdd = "Categories",
-                    totalRowsAdded = 0,
-                    Error = "There was an error trying to add the categories!"
-                };
-            }
-
+                Message = "Uploading Categories form CSV file",
+                TotalRowsAdded = totalAdded == 0 ? null : totalAdded,
+                TotalRowsUpdated = totalUpdated == 0 ? null : totalUpdated,
+            };
         }
 
-        public async Task<CategoryEntity> FindByCode(string categoryCode)
+        public async Task<CategoryEntity?> FindByCode(string categoryCode)
         {
             return await _dbContext.Categories.FirstOrDefaultAsync(c => c.Code.Equals(categoryCode));
         }
@@ -73,6 +82,16 @@ namespace PFMdotnet.Database.Repositories.Impl
 
             return categories;
 
+        }
+
+        public async Task<List<CategoryEntity>> GetCategoriesAsync(string parentId)
+        {
+
+            var categories = parentId == null ?
+                await _dbContext.Categories.Where(c => string.IsNullOrEmpty(c.ParentCode)).ToListAsync() :
+                await _dbContext.Categories.Where(c => c.ParentCode.Equals(parentId)).ToListAsync();
+
+            return categories;
         }
     }
 }

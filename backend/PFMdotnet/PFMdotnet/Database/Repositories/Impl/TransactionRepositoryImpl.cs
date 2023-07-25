@@ -1,9 +1,8 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using PFMdotnet.Database.Entities;
 using PFMdotnet.Helpers;
+using PFMdotnet.Helpers.SearchReturnObjects.Transactions;
 using PFMdotnet.Models;
-using System.Net;
-using System.Web.Http;
 
 namespace PFMdotnet.Database.Repositories.Impl
 {
@@ -40,7 +39,7 @@ namespace PFMdotnet.Database.Repositories.Impl
             {
                 return new ReturnDTO<TransactionEntity>
                 {
-                    Process = string.Format("Failed to add Category: '{0}' to Transacton: '{1}'", catCode, id),
+                    Message = string.Format("Failed to add Category: '{0}' to Transacton: '{1}'", catCode, id),
                     Errors = errors
                 };
             }  
@@ -56,7 +55,7 @@ namespace PFMdotnet.Database.Repositories.Impl
 
             return new ReturnDTO<TransactionEntity>
             {
-                Process = string.Format("Adding Category: '{0}' to Transacton: '{1}'", catCode, id),
+                Message = string.Format("Adding Category: '{0}' to Transacton: '{1}'", catCode, id),
                 Value = transactionEntity
             };
 
@@ -71,37 +70,46 @@ namespace PFMdotnet.Database.Repositories.Impl
             return transaction;
         }
 
-        public async Task<AfterBulkAdd<TransactionEntity>> CreateBulk(List<TransactionEntity> transactions)
+        public async Task<AfterBulkAdd<TransactionEntity>> CreateBulk(List<TransactionEntity> transactions, int chunkSize)
         {
-            int chunkSize = 500;
             int total = transactions.Count;
-            var chunks = ListToChunks.ChunkList(transactions, chunkSize);
+            int totalAdded = 0;
+            int totalUpdated = 0;
 
-            try
+            var uniqueIds = transactions.Select(t => t.Id).ToList();
+
+            var existingTransactions = _dbContext.Transactions
+                .Where(t => uniqueIds.Contains(t.Id))
+                .ToDictionary(t => t.Id);
+
+            var newTransactions = transactions.Where(t => !existingTransactions.ContainsKey(t.Id)).ToDictionary(t => t.Id);
+
+            for (int i = 0; i < total; i += chunkSize)
             {
-                foreach (var chunk in chunks)
+
+                var chunkNew = newTransactions.Values.ToList().Skip(i).Take(chunkSize).ToList();
+                var chunkExisting = existingTransactions.Values.ToList().Skip(i).Take(chunkSize).ToList();
+
+                if (chunkNew.Any())
                 {
-                    await _dbContext.Transactions.AddRangeAsync(chunk);
-                    await _dbContext.SaveChangesAsync();
+                    await _dbContext.Transactions.AddRangeAsync(chunkNew);
+                    totalAdded += chunkNew.Count();
                 }
 
-
-                return new AfterBulkAdd<TransactionEntity>
+                if (chunkExisting.Any())
                 {
-                    toAdd = "Transactions",
-                    totalRowsAdded = total,
-                    rowExample = transactions.ElementAt(0)
-                };
+                    _dbContext.Transactions.UpdateRange(chunkExisting);
+                    totalUpdated += chunkExisting.Count();
+                }
 
-            } catch (Exception)
-            {
-                return new AfterBulkAdd<TransactionEntity>
-                {
-                    toAdd = "Transactions",
-                    totalRowsAdded = 0,
-                    Error = "There was an error trying to add the transactions!"
-                };
+                await _dbContext.SaveChangesAsync();
             }
+
+            return new AfterBulkAdd<TransactionEntity> { 
+                Message = "Uploading Transactions form CSV file",
+                TotalRowsAdded = totalAdded == 0 ? null : totalAdded, 
+                TotalRowsUpdated = totalUpdated == 0 ? null : totalUpdated,
+            };
             
         }
 
@@ -115,97 +123,99 @@ namespace PFMdotnet.Database.Repositories.Impl
 
         
 
-        public async Task<TransactionPagedList<TransactionEntity>> GetTransactionsAsQueryable(SearchParams searchParams)
+        public async Task<TransactionPagedList<TransactionEntity>> GetTransactionsAsQueryable(FilterTransactionsParams searchParams)
         {
 
             // Between Date Filter
             IQueryable<TransactionEntity> transactions = _dbContext.Transactions
-                .Where(t => t.Date >= searchParams.startDate && t.Date <= searchParams.endDate);
+                .Where(t => t.Date >= searchParams.StartDate && t.Date <= searchParams.EndDate);
 
             // Transaction Kinds Filter
-            if (searchParams.kinds != null && searchParams.kinds.Any())
+            if (searchParams.Kinds != null && searchParams.Kinds.Any())
             {
-                transactions = transactions.Where(t => searchParams.kinds.Contains(t.Kind));
+                transactions = transactions.Where(t => searchParams.Kinds.Contains(t.Kind));
             }
 
             // Sorting
-            if(!string.IsNullOrEmpty(searchParams.sortBy))
+            if(!string.IsNullOrEmpty(searchParams.SortBy))
             {
-                switch (searchParams.sortBy)
+                switch (searchParams.SortBy)
                 {
                     case "date":
-                        transactions = searchParams.sortOrder == SortOrder.Asc ?
+                        transactions = searchParams.SortOrder == SortOrder.Asc ?
                             transactions.OrderBy(t => t.Date) : transactions.OrderByDescending(t => t.Date);
 
                         break;
 
                     case "id":
-                        transactions = searchParams.sortOrder == SortOrder.Asc ?
+                        transactions = searchParams.SortOrder == SortOrder.Asc ?
                             transactions.OrderBy(t => t.Id) : transactions.OrderByDescending(t => t.Id);
 
                         break;
 
                     case "beneficiaryName":
-                        transactions = searchParams.sortOrder == SortOrder.Asc ?
+                        transactions = searchParams.SortOrder == SortOrder.Asc ?
                             transactions.OrderBy(t => t.BeneficiaryName) : transactions.OrderByDescending(t => t.BeneficiaryName);
 
                         break;
 
                     case "amount":
-                        transactions = searchParams.sortOrder == SortOrder.Asc ?
+                        transactions = searchParams.SortOrder == SortOrder.Asc ?
                             transactions.OrderBy(t => t.Amount) : transactions.OrderByDescending(t => t.Amount);
 
                         break;
 
                     case "currency":
-                        transactions = searchParams.sortOrder == SortOrder.Asc ?
+                        transactions = searchParams.SortOrder == SortOrder.Asc ?
                             transactions.OrderBy(t => t.Currency) : transactions.OrderByDescending(t => t.Currency);
 
                         break;
 
                     case "kind":
-                        transactions = searchParams.sortOrder == SortOrder.Asc ?
+                        transactions = searchParams.SortOrder == SortOrder.Asc ?
                             transactions.OrderBy(t => t.Kind) : transactions.OrderByDescending(t => t.Kind);
 
                         break;
 
                     case "mcc":
-                        transactions = searchParams.sortOrder == SortOrder.Asc ?
+                        transactions = searchParams.SortOrder == SortOrder.Asc ?
                             transactions.OrderBy(t => t.Mcc) : transactions.OrderByDescending(t => t.Mcc);
 
                         break;
 
                     default:
-                        transactions = searchParams.sortOrder == SortOrder.Asc ?
+                        transactions = searchParams.SortOrder == SortOrder.Asc ?
                             transactions.OrderBy(t => t.Id) : transactions.OrderByDescending(t => t.Id);
-                        searchParams.sortBy = "id";
+                        searchParams.SortBy = "id";
                         break;
                 }
             }
 
             else { transactions = transactions.OrderBy(t => t.Id); }
 
+            int pageSize = (int)searchParams.PageSize;
+
             int totalCount = transactions.Count();
-            int totalPages = (int)Math.Ceiling(totalCount * 1.0 / searchParams.pageSize);
+            int totalPages = (int)Math.Ceiling(totalCount * 1.0 / searchParams.PageSize);
 
 
-            transactions = transactions.Skip((searchParams.page - 1) * searchParams.pageSize)
-                               .Take(searchParams.pageSize);
+            transactions = transactions.Skip((searchParams.Page - 1) * searchParams.PageSize)
+                               .Take(searchParams.PageSize);
 
 
             //return await transactions.ToListAsync();
 
             return new TransactionPagedList<TransactionEntity>
             {
-                Page = searchParams.page,
-                PageSize = searchParams.pageSize,
+                Page = searchParams.Page,
+                PageSize = searchParams.PageSize,
                 TotalCount = totalCount,
                 TotalPages = totalPages,
-                SortBy = searchParams.sortBy,
-                SortOrder = searchParams.sortOrder,
-                StartDate = searchParams.startDate,
-                EndDate = searchParams.endDate,
-                Kinds = searchParams.kinds,
+                SortBy = searchParams.SortBy,
+                SortOrder = searchParams.SortOrder,
+                StartDate = searchParams.StartDate,
+                EndDate = searchParams.EndDate,
+                Kinds = searchParams.Kinds,
                 Items = await transactions.ToListAsync()
 
             };

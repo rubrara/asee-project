@@ -1,6 +1,6 @@
-﻿namespace PFMdotnet.Models
+﻿namespace PFMdotnet.Models.Analytics
 {
-    public class Analytics
+    public class AnalyticsDto
     {
 
         public string CatCode { get; set; }

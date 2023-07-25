@@ -1,5 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using PFMdotnet.Models;
+using PFMdotnet.Models.Analytics;
 using PFMdotnet.Services;
 
 namespace PFMdotnet.Controllers

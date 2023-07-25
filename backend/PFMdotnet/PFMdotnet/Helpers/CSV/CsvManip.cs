@@ -3,10 +3,10 @@ using System.Globalization;
 
 namespace PFMdotnet.Helpers.ParseCSV
 {
-    public class CsvParse<T>
+    public class CsvManip
     {
 
-        public static List<T> ToList(IFormFile file)
+        public static List<T> ToList<T>(IFormFile file)
         {
 
             if (file == null || file.Length == 0) throw new ArgumentNullException();
@@ -24,6 +24,13 @@ namespace PFMdotnet.Helpers.ParseCSV
             {
                 throw new Exception(ex.Message);
             }
+        }
+
+        public static bool IsValidCsvFile(IFormFile file)
+        {
+            var allowedExtensions = new[] { ".csv" };
+            var fileExtension = Path.GetExtension(file.FileName).ToLowerInvariant();
+            return allowedExtensions.Contains(fileExtension);
         }
     }
 }

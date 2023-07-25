@@ -1,12 +1,9 @@
-﻿using CsvHelper;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using PFMdotnet.Commands;
 using PFMdotnet.Database.Enums;
 using PFMdotnet.Helpers.ParseCSV;
 using PFMdotnet.Models;
 using PFMdotnet.Services;
-using System.Globalization;
-using System.Linq.Expressions;
 
 namespace PFMdotnet.Controllers
 {
@@ -26,67 +23,60 @@ namespace PFMdotnet.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetTransactions(
-            [FromQuery] int? page, 
-            [FromQuery] int? pageSize, 
-            [FromQuery] string? sortBy, 
-            [FromQuery] SortOrder? sortOrder,
-            [FromQuery] string? startDate,
-            [FromQuery] string? endDate,
-            [FromQuery] string? kindsString
-            )
+        public async Task<IActionResult> GetTransactions([FromQuery] SearchTransactionParams searchParams)
         {
 
-            List<KindEnum>? kinds = new();
+            var result = await _transactionService.GetTransactionsAsQueriable(searchParams);
 
-            if (!string.IsNullOrEmpty(kindsString))
+            if (result.Errors != null)
             {
-                string[] kindsArray = kindsString.Split(',');
-
-                foreach (string kind in kindsArray)
-                {
-                    try
-                    {
-                        kinds.Add(Enum.Parse<KindEnum>(kind));
-                    }
-                    catch(Exception)
-                    {
-                        return BadRequest(new
-                        {
-                            Message = "A Transaction Kind you entered is Invalid"
-                        });
-                    }
-                }
-            } else
-            {
-                kinds = Enum.GetValues(typeof(KindEnum)).Cast<KindEnum>().ToList();
+                return BadRequest(result);
             }
 
-            page = page > 0 ? page : 1;
-            pageSize = (pageSize < 1 || pageSize == null) ? 5 : pageSize > 50 ? 50 : pageSize;
+            return Ok(result);
+        }
 
-            _logger.LogInformation("Returning {page}. page of transactions", page);
-         
-            var result = await _transactionService.GetTransactionsAsQueriable(new SearchParams()
+        [HttpGet]
+        [Route("{id}")]
+        public async Task<IActionResult> GetTransaction([FromRoute] string id)
+        {
+
+            var result = await _transactionService.GetTransaction(id);
+
+            if (result.Errors != null)
             {
-                page = (int)page,
-                pageSize = (int)pageSize,
-                sortBy = sortBy,
-                sortOrder = (SortOrder)(sortOrder != null ? sortOrder : SortOrder.Asc),
-                startDate = string.IsNullOrEmpty(startDate) ? DateOnly.MinValue : DateOnly.Parse(startDate),
-                endDate = string.IsNullOrEmpty(endDate) ? DateOnly.MaxValue : DateOnly.Parse(endDate),
-                kinds = kinds
-            });
+                return BadRequest(result);
+            }
 
             return Ok(result);
         }
 
         [HttpPost]
         [Route("import")]
-        public async Task<IActionResult> ImportTransactions(IFormFile file)
+        public async Task<IActionResult> ImportTransactions(IFormFile? file)
         {
 
-            var res = await _transactionService.CreateTransactionBulk(CsvParse<CreateTransactionCommand>.ToList(file));
+            if (file == null || file.Length == 0)
+            {
+                return NotFound(new
+                {
+                    Message = "Uploading CSV file",
+                    Error = "No file given. Please upload a CSV file.",
+                    StatusCode = StatusCodes.Status404NotFound
+                });
+            }
+
+            if (!CsvManip.IsValidCsvFile(file))
+            {
+                return StatusCode(403, new
+                {
+                    Message = "Uploading CSV file",
+                    Error = "The file is not in CSV format.",
+                    StatusCode = StatusCodes.Status403Forbidden
+                });
+            }
+
+            var res = await _transactionService.CreateTransactionBulk(CsvManip.ToList<CreateTransactionCommand>(file));
 
             return Ok(res);
         }
@@ -110,8 +100,14 @@ namespace PFMdotnet.Controllers
 
         }
 
+        [HttpPost("{id}/split")]
+        public async Task<IActionResult> SplitTransaction([FromRoute] string id, [FromBody] SplitByParams splitByParams)
+        {
 
+            var result = await _transactionService.SplitTransactionAsync(id, splitByParams);
 
+            return Ok(result);
+        }
 
     }
 }

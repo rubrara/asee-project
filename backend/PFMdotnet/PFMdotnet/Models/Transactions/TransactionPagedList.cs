@@ -1,5 +1,4 @@
-﻿using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
-using PFMdotnet.Database.Enums;
+﻿using PFMdotnet.Database.Enums;
 
 namespace PFMdotnet.Models
 {

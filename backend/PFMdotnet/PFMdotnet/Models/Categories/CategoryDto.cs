@@ -1,9 +1,7 @@
-﻿using CsvHelper.Configuration.Attributes;
-using System.ComponentModel.DataAnnotations;
-
+﻿
 namespace PFMdotnet.Models
 {
-    public class Category
+    public class CategoryDto
     {
         public string Code { get; set; }
 

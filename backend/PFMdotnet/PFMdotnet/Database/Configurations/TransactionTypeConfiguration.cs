@@ -4,15 +4,15 @@ using PFMdotnet.Database.Entities;
 
 namespace PFMdotnet.Database.Configurations
 {
-    public class TransactionEntityTypeConfiguration : IEntityTypeConfiguration<TransactionEntity>
+    public class TransactionTypeConfiguration : IEntityTypeConfiguration<Transaction>
     {
 
-        public TransactionEntityTypeConfiguration()
+        public TransactionTypeConfiguration()
         {
             
         }
 
-        public void Configure(EntityTypeBuilder<TransactionEntity> builder)
+        public void Configure(EntityTypeBuilder<Transaction> builder)
         {
             builder.ToTable("transactions");
 

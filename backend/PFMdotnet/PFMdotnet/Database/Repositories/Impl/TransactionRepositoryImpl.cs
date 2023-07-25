@@ -12,18 +12,18 @@ namespace PFMdotnet.Database.Repositories.Impl
         private readonly AppDbContext _dbContext;
         private readonly ICategoryRepository _categoryRepository;
 
-        public TransactionRepositoryImpl(AppDbContext context, ICategoryRepository categoryRepository = null)
+        public TransactionRepositoryImpl(AppDbContext context, ICategoryRepository categoryRepository)
         {
             _dbContext = context;
             _categoryRepository = categoryRepository;   
         }
 
-        public async Task<ReturnDTO<TransactionEntity>> AddCategoryToTransaction(string id, string catCode)
+        public async Task<ReturnDTO<Transaction>> AddCategoryToTransaction(string id, string catCode)
         {
 
             List<string> errors = new();
 
-            TransactionEntity transactionEntity = await Get(id);
+            Transaction transactionEntity = await Get(id);
             if (transactionEntity == null)
             {
                 errors.Add(string.Format("The Transaction Id: {0} doesn't exist", id));
@@ -37,7 +37,7 @@ namespace PFMdotnet.Database.Repositories.Impl
 
             if (errors.Count != 0)
             {
-                return new ReturnDTO<TransactionEntity>
+                return new ReturnDTO<Transaction>
                 {
                     Message = string.Format("Failed to add Category: '{0}' to Transacton: '{1}'", catCode, id),
                     Errors = errors
@@ -53,7 +53,7 @@ namespace PFMdotnet.Database.Repositories.Impl
 
             await _dbContext.SaveChangesAsync();
 
-            return new ReturnDTO<TransactionEntity>
+            return new ReturnDTO<Transaction>
             {
                 Message = string.Format("Adding Category: '{0}' to Transacton: '{1}'", catCode, id),
                 Value = transactionEntity
@@ -61,7 +61,33 @@ namespace PFMdotnet.Database.Repositories.Impl
 
         }
 
-        public async Task<TransactionEntity> Create(TransactionEntity transaction)
+        public async Task DeleteTransactionSplits(Transaction transaction)
+        {
+            var toDelete = _dbContext.Splits.Where(s => s.TransactionId.Equals(transaction.Id));
+
+            _dbContext.Splits.RemoveRange(toDelete);
+
+            await _dbContext.SaveChangesAsync();
+        }
+
+        public async Task<bool> AddTransactionSplits(List<TransactionSplit> splits)
+        {
+            try
+            {
+                _dbContext.Splits.AddRange(splits);
+
+                await _dbContext.SaveChangesAsync();
+
+                return true;
+
+        } catch
+            {
+                return false;
+            }
+            
+        }
+
+        public async Task<Transaction> Create(Transaction transaction)
         {
             _dbContext.Transactions.Add(transaction);
 
@@ -70,7 +96,7 @@ namespace PFMdotnet.Database.Repositories.Impl
             return transaction;
         }
 
-        public async Task<AfterBulkAdd<TransactionEntity>> CreateBulk(List<TransactionEntity> transactions, int chunkSize)
+        public async Task<AfterBulkAdd<Transaction>> CreateBulk(List<Transaction> transactions, int chunkSize)
         {
             int total = transactions.Count;
             int totalAdded = 0;
@@ -105,7 +131,7 @@ namespace PFMdotnet.Database.Repositories.Impl
                 await _dbContext.SaveChangesAsync();
             }
 
-            return new AfterBulkAdd<TransactionEntity> { 
+            return new AfterBulkAdd<Transaction> { 
                 Message = "Uploading Transactions form CSV file",
                 TotalRowsAdded = totalAdded == 0 ? null : totalAdded, 
                 TotalRowsUpdated = totalUpdated == 0 ? null : totalUpdated,
@@ -113,21 +139,21 @@ namespace PFMdotnet.Database.Repositories.Impl
             
         }
 
-        public async Task<TransactionEntity> Get(string Id)
+        public async Task<Transaction> Get(string Id)
         {
 
-            var res = await _dbContext.Transactions.FirstOrDefaultAsync(p => p.Id == Id);
+            var res = await _dbContext.Transactions.Where(t => t.Id.Equals(Id)).Include(t => t.Splits).FirstOrDefaultAsync(p => p.Id == Id);
 
             return res;
         }
 
         
 
-        public async Task<TransactionPagedList<TransactionEntity>> GetTransactionsAsQueryable(FilterTransactionsParams searchParams)
+        public async Task<TransactionPagedList<Transaction>> GetTransactionsAsQueryable(FilterTransactionsParams searchParams)
         {
 
             // Between Date Filter
-            IQueryable<TransactionEntity> transactions = _dbContext.Transactions
+            IQueryable<Transaction> transactions = _dbContext.Transactions
                 .Where(t => t.Date >= searchParams.StartDate && t.Date <= searchParams.EndDate);
 
             // Transaction Kinds Filter
@@ -205,7 +231,7 @@ namespace PFMdotnet.Database.Repositories.Impl
 
             //return await transactions.ToListAsync();
 
-            return new TransactionPagedList<TransactionEntity>
+            return new TransactionPagedList<Transaction>
             {
                 Page = searchParams.Page,
                 PageSize = searchParams.PageSize,

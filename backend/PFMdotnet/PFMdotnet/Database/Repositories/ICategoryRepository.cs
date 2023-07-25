@@ -6,13 +6,13 @@ namespace PFMdotnet.Database.Repositories
     public interface ICategoryRepository
     {
 
-        Task<AfterBulkAdd<CategoryEntity>> CreateBulk(List<CategoryEntity> categories, int chunkSize);
+        Task<AfterBulkAdd<Category>> CreateBulk(List<Category> categories, int chunkSize);
 
-        Task<List<CategoryEntity>> GetCategoriesAsync(string parentId);
+        Task<List<Category>> GetCategoriesAsync(string parentId);
 
-        Task<CategoryEntity?> FindByCode(string categoryCode);
+        Task<Category?> FindByCode(string categoryCode);
 
-        Task<List<CategoryEntity>> GetAnalyticsAsync(string categoryCode);
+        Task<List<Category>> GetAnalyticsAsync(string categoryCode);
 
     }
 }

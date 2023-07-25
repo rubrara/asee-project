@@ -101,13 +101,20 @@ namespace PFMdotnet.Controllers
         }
 
         [HttpPost("{id}/split")]
-        public async Task<IActionResult> SplitTransaction([FromRoute] string id, [FromBody] SplitByParams splitByParams)
+        public async Task<IActionResult> SplitTransaction([FromRoute] string id, [FromBody] SplitByParams splitParams)
         {
 
-            var result = await _transactionService.SplitTransactionAsync(id, splitByParams);
+            var result = await _transactionService.SplitTransactionAsync(id, splitParams);
+
+            if (result.Errors != null)
+            {
+                return BadRequest(result);
+            }
 
             return Ok(result);
         }
+
+       
 
     }
 }

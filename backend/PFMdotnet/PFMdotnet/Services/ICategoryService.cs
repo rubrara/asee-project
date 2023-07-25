@@ -9,7 +9,7 @@ namespace PFMdotnet.Services
 {
     public interface ICategoryService
     {
-        Task<AfterBulkAdd<CategoryEntity>> CreateCategoryBulk(List<CreateCategoryCommand> commands);
+        Task<AfterBulkAdd<Category>> CreateCategoryBulk(List<CreateCategoryCommand> commands);
 
         Task<CategoriesReturnDto> GetCategoriesAsQueriable(string parentId);
         Task<CategoriesReturnDto> GetCategory(string catCode);

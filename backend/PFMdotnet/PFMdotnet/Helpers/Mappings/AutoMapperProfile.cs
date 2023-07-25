@@ -11,18 +11,18 @@ namespace PFMdotnet.Helpers.Mappings
         {
 
             // Transactions
-            CreateMap<TransactionEntity, Transaction>();
-            CreateMap<Transaction, TransactionEntity>();
-            CreateMap<CreateTransactionCommand, TransactionEntity>();
+            CreateMap<Transaction, TransactionDto>();
+            CreateMap<TransactionDto, Transaction>();
+            CreateMap<CreateTransactionCommand, Transaction>();
 
-            CreateMap<TransactionPagedList<TransactionEntity>, TransactionPagedList<Transaction>>();
-            CreateMap<ReturnDTO<Transaction>, ReturnDTO<TransactionEntity>>();
-            CreateMap<ReturnDTO<TransactionEntity>, ReturnDTO<Transaction>>();
+            CreateMap<TransactionPagedList<Transaction>, TransactionPagedList<TransactionDto>>();
+            CreateMap<ReturnDTO<TransactionDto>, ReturnDTO<Transaction>>();
+            CreateMap<ReturnDTO<Transaction>, ReturnDTO<TransactionDto>>();
 
             // Categorries
-            CreateMap<CategoryEntity, Category>();
-            CreateMap<Category, CategoryEntity>();
-            CreateMap<CreateCategoryCommand, CategoryEntity>();
+            CreateMap<Category, CategoryDto>();
+            CreateMap<CategoryDto, Category>();
+            CreateMap<CreateCategoryCommand, Category>();
 
 
         }

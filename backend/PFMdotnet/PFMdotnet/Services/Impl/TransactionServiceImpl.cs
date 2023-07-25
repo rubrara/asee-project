@@ -23,19 +23,19 @@ namespace PFMdotnet.Services.Impl
             _categoryRepository = categoryRepository;
         }
 
-        public async Task<ReturnDTO<Transaction>> AddCategoryToTransaction(string id, string catCode)
+        public async Task<ReturnDTO<TransactionDto>> AddCategoryToTransaction(string id, string catCode)
         {
 
             var result = await _transactionRepository.AddCategoryToTransaction(id, catCode);
 
-            return _mapper.Map<ReturnDTO<Transaction>>(result);
+            return _mapper.Map<ReturnDTO<TransactionDto>>(result);
 
 
         }
 
-        public async Task<Transaction> CreateTransaction(CreateTransactionCommand command)
+        public async Task<TransactionDto> CreateTransaction(CreateTransactionCommand command)
         {
-            var entity = _mapper.Map<TransactionEntity>(command);
+            var entity = _mapper.Map<Transaction>(command);
 
             var existingProduct = await _transactionRepository.Get(command.Id);
             if (existingProduct != null)
@@ -44,13 +44,13 @@ namespace PFMdotnet.Services.Impl
             }
             var result = await _transactionRepository.Create(entity);
 
-            return _mapper.Map<Transaction>(result);
+            return _mapper.Map<TransactionDto>(result);
         }
 
-        public async Task<AfterBulkAdd<TransactionEntity>> CreateTransactionBulk(List<CreateTransactionCommand> commands)
+        public async Task<AfterBulkAdd<Transaction>> CreateTransactionBulk(List<CreateTransactionCommand> commands)
         {
 
-            var entities = _mapper.Map<List<TransactionEntity>>(commands);
+            var entities = _mapper.Map<List<Transaction>>(commands);
 
             if (entities == null)
             {
@@ -63,11 +63,11 @@ namespace PFMdotnet.Services.Impl
             return result;
         }
 
-        public async Task<ReturnDTO<Transaction>> GetTransaction(string transactionCode)
+        public async Task<ReturnDTO<TransactionDto>> GetTransaction(string transactionCode)
         {
             var transactionEntity = await _transactionRepository.Get(transactionCode);
 
-            var res = new ReturnDTO<Transaction>()
+            var res = new ReturnDTO<TransactionDto>()
             {
                 Message = string.Format("Getting Transaction for Id: {0}", transactionCode)
             };
@@ -82,12 +82,12 @@ namespace PFMdotnet.Services.Impl
                 return res;
             }
 
-            res.Value = _mapper.Map<Transaction>(transactionEntity);
+            res.Value = _mapper.Map<TransactionDto>(transactionEntity);
 
             return res;
         }
 
-        public async Task<TransactionPagedList<TransactionEntity>> GetTransactionsAsQueriable(SearchTransactionParams searchParams)
+        public async Task<TransactionPagedList<Transaction>> GetTransactionsAsQueriable(SearchTransactionParams searchParams)
         {
 
             List<KindEnum>? kinds = new();
@@ -156,7 +156,7 @@ namespace PFMdotnet.Services.Impl
 
             if (errors.Any())
             {
-                return new TransactionPagedList<TransactionEntity>
+                return new TransactionPagedList<Transaction>
                 {
                     Message = "Import of transactions is not allowed!",
                     Errors = errors
@@ -179,7 +179,7 @@ namespace PFMdotnet.Services.Impl
 
             if (page > result.TotalPages)
             {
-                var res = new TransactionPagedList<TransactionEntity>
+                var res = new TransactionPagedList<Transaction>
                 {
                     Message = "Import of transactions is not allowed!",
                     Errors = new()
@@ -194,16 +194,18 @@ namespace PFMdotnet.Services.Impl
 
         }
 
-        public async Task<ReturnDTO<List<Transaction>>> SplitTransactionAsync(string transactionId, SplitByParams parameters)
+        public async Task<ReturnDTO<List<TransactionDto>>> SplitTransactionAsync(string transactionId, SplitByParams parameters)
         {
 
-            ReturnDTO<List<Transaction>> returnDto = new()
+            var transaction = await _transactionRepository.Get(transactionId);
+            double sum = 0;
+
+            ReturnDTO<List<TransactionDto>> returnDto = new()
             {
-                Message = "Trying to Split a Transaction",
+                Message = "Split Transaction",
             };
             string error;
 
-            var transaction = _mapper.Map<Transaction>(await _transactionRepository.Get(transactionId));
             if (transaction == null)
             {
                 error = string.Format("The Transaction with id: {0} doesn't exist", transactionId);
@@ -219,6 +221,13 @@ namespace PFMdotnet.Services.Impl
             // ako sumata na amaounts od splits != transaction.amount hendlaj errors
 
             // Check if the sum is equal with the transaction amount
+
+            if (parameters.Splits.Count < 2)
+            {
+                returnDto.Message = "You need to have two or more splits to split a transaction";
+                return returnDto;
+            }
+
             if (transaction.Amount != parameters.Splits.Sum(split => split.Amount))
             {
                 error = "The amounts sum of the Splits is not the same with the amount of the Transaction";
@@ -228,13 +237,58 @@ namespace PFMdotnet.Services.Impl
                 return returnDto;
             }
 
+            List<TransactionSplit> splits = new();
+
             foreach (var split in parameters.Splits)
             {
-                // do stuff gtg ujp
-            }
-            
+                // za sekoj split treba da se napraj nov TransactionSplit so nekakov id
+                // Toj split treba da se dodaj vo TransactionEntity vo Splits listata
 
-            throw new NotImplementedException();
+                if ((await _categoryRepository.FindByCode(split.CatCode) == null))
+                {
+                    returnDto.Errors = new()
+                    {
+                        string.Format("The category with code: {0} doesn't exist", split.CatCode)
+                    };
+
+                    return returnDto;
+                }
+
+                var splitTransactionEntity = new TransactionSplit
+                {
+                    Id = Guid.NewGuid(),
+                    TransactionId = transaction.Id,
+                    CatCode = split.CatCode,
+                    Amount = split.Amount
+                };
+
+                splits.Add(splitTransactionEntity);
+            }
+
+            if (transaction.Splits != null)
+            {
+                await _transactionRepository.DeleteTransactionSplits(transaction);
+            }
+
+            transaction.Splits = splits;
+
+            if(await _transactionRepository.AddTransactionSplits(splits))
+            {
+                returnDto.Message = "Sucessfuly splited the transaction!";
+
+                return returnDto;
+            } else
+            {
+                returnDto.Errors = new()
+                    {
+                        "There was a problem in storing the splits in the database"
+                    };
+
+                return returnDto;
+            }
+
+
+            
         }
     }
 }

@@ -4,15 +4,15 @@ using PFMdotnet.Database.Entities;
 
 namespace PFMdotnet.Database.Configurations
 {
-    public class CategoryEntityTypeConfiguration : IEntityTypeConfiguration<CategoryEntity>
+    public class CategoryTypeConfiguration : IEntityTypeConfiguration<Category>
     {
 
-        public CategoryEntityTypeConfiguration()
+        public CategoryTypeConfiguration()
         {
             
         }
 
-        public void Configure(EntityTypeBuilder<CategoryEntity> builder)
+        public void Configure(EntityTypeBuilder<Category> builder)
         {
             builder.ToTable("categories");
 

@@ -11,7 +11,7 @@ using PFMdotnet.Database;
 namespace PFMdotnet.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class TransactionDbContextModelSnapshot : ModelSnapshot
+    partial class AppDbContextModelSnapshot : ModelSnapshot
     {
         protected override void BuildModel(ModelBuilder modelBuilder)
         {
@@ -22,7 +22,7 @@ namespace PFMdotnet.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
-            modelBuilder.Entity("PFMdotnet.Database.Entities.CategoryEntity", b =>
+            modelBuilder.Entity("PFMdotnet.Database.Entities.Category", b =>
                 {
                     b.Property<string>("Code")
                         .HasMaxLength(64)
@@ -42,7 +42,7 @@ namespace PFMdotnet.Migrations
                     b.ToTable("categories", (string)null);
                 });
 
-            modelBuilder.Entity("PFMdotnet.Database.Entities.TransactionEntity", b =>
+            modelBuilder.Entity("PFMdotnet.Database.Entities.Transaction", b =>
                 {
                     b.Property<string>("Id")
                         .HasMaxLength(64)
@@ -52,7 +52,6 @@ namespace PFMdotnet.Migrations
                         .HasColumnType("double precision");
 
                     b.Property<string>("BeneficiaryName")
-                        .IsRequired()
                         .HasMaxLength(128)
                         .HasColumnType("character varying(128)");
 
@@ -89,18 +88,59 @@ namespace PFMdotnet.Migrations
                     b.ToTable("transactions", (string)null);
                 });
 
-            modelBuilder.Entity("PFMdotnet.Database.Entities.TransactionEntity", b =>
+            modelBuilder.Entity("PFMdotnet.Database.Entities.TransactionSplit", b =>
                 {
-                    b.HasOne("PFMdotnet.Database.Entities.CategoryEntity", "Category")
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<double>("Amount")
+                        .HasColumnType("double precision");
+
+                    b.Property<string>("CatCode")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("TransactionId")
+                        .IsRequired()
+                        .HasColumnType("character varying(64)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TransactionId");
+
+                    b.ToTable("splits", (string)null);
+                });
+
+            modelBuilder.Entity("PFMdotnet.Database.Entities.Transaction", b =>
+                {
+                    b.HasOne("PFMdotnet.Database.Entities.Category", "Category")
                         .WithMany("Transactions")
                         .HasForeignKey("CatCode");
 
                     b.Navigation("Category");
                 });
 
-            modelBuilder.Entity("PFMdotnet.Database.Entities.CategoryEntity", b =>
+            modelBuilder.Entity("PFMdotnet.Database.Entities.TransactionSplit", b =>
+                {
+                    b.HasOne("PFMdotnet.Database.Entities.Transaction", "Transaction")
+                        .WithMany("Splits")
+                        .HasForeignKey("TransactionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Transaction");
+                });
+
+            modelBuilder.Entity("PFMdotnet.Database.Entities.Category", b =>
                 {
                     b.Navigation("Transactions");
+                });
+
+            modelBuilder.Entity("PFMdotnet.Database.Entities.Transaction", b =>
+                {
+                    b.Navigation("Splits");
                 });
 #pragma warning restore 612, 618
         }

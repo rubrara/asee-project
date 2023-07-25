@@ -4,6 +4,6 @@ namespace PFMdotnet.Models
 {
     public class SplitByParams
     {
-        public List<SplitObj>? Splits { get; set; }
+        public List<SplitDto>? Splits { get; set; }
     }
 }

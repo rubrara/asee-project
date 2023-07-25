@@ -24,9 +24,9 @@ namespace PFMdotnet.Services.Impl
             _mapper = mapper;
         }
 
-        public async Task<AfterBulkAdd<CategoryEntity>> CreateCategoryBulk(List<CreateCategoryCommand> commands)
+        public async Task<AfterBulkAdd<Category>> CreateCategoryBulk(List<CreateCategoryCommand> commands)
         {
-            var entities = _mapper.Map<List<CategoryEntity>>(commands);
+            var entities = _mapper.Map<List<Category>>(commands);
 
             if (entities == null)
             {
@@ -253,7 +253,7 @@ namespace PFMdotnet.Services.Impl
         public async Task<CategoriesReturnDto> GetCategoriesAsQueriable(string parentId)
         {
             // _mapper.Map<Category>(category)
-            var categories = _mapper.Map<List<Category>>( await _categoryRepository.GetCategoriesAsync(parentId));
+            var categories = _mapper.Map<List<CategoryDto>>( await _categoryRepository.GetCategoriesAsync(parentId));
             var res = new CategoriesReturnDto()
             {
                 Message = "Getting the top-level categories from database"
@@ -341,7 +341,7 @@ namespace PFMdotnet.Services.Impl
                 return res;
             }
 
-            res.Category = _mapper.Map<Category>(category);
+            res.Category = _mapper.Map<CategoryDto>(category);
 
             return res;
         }

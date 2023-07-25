@@ -7,8 +7,9 @@ namespace PFMdotnet.Database
 {
     public class AppDbContext : DbContext
     {
-        public DbSet<TransactionEntity> Transactions { get; set; }
-        public DbSet<CategoryEntity> Categories { get; set; }
+        public DbSet<Transaction> Transactions { get; set; }
+        public DbSet<Category> Categories { get; set; }
+        public DbSet<TransactionSplit> Splits { get; set; }
 
         public AppDbContext(DbContextOptions options) : base(options) 
         {
@@ -21,8 +22,9 @@ namespace PFMdotnet.Database
         {
             AppContext.SetSwitch("Npgsql.DisableDateTimeInfinityConversions", true);
 
-            modelBuilder.ApplyConfiguration(new TransactionEntityTypeConfiguration());
-            modelBuilder.ApplyConfiguration(new CategoryEntityTypeConfiguration());
+            modelBuilder.ApplyConfiguration(new TransactionTypeConfiguration());
+            modelBuilder.ApplyConfiguration(new CategoryTypeConfiguration());
+            modelBuilder.ApplyConfiguration(new TransactionSplitTypeConfiguration());
 
             base.OnModelCreating(modelBuilder);
 

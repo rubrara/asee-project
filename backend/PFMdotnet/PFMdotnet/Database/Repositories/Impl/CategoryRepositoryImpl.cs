@@ -16,7 +16,7 @@ namespace PFMdotnet.Database.Repositories.Impl
             _dbContext = context;
         }
 
-        public async Task<AfterBulkAdd<CategoryEntity>> CreateBulk(List<CategoryEntity> categories, int chunkSize)
+        public async Task<AfterBulkAdd<Category>> CreateBulk(List<Category> categories, int chunkSize)
         {
 
             int total = categories.Count;
@@ -52,7 +52,7 @@ namespace PFMdotnet.Database.Repositories.Impl
                 await _dbContext.SaveChangesAsync();
             }
 
-            return new AfterBulkAdd<CategoryEntity>
+            return new AfterBulkAdd<Category>
             {
                 Message = "Uploading Categories form CSV file",
                 TotalRowsAdded = totalAdded == 0 ? null : totalAdded,
@@ -60,15 +60,15 @@ namespace PFMdotnet.Database.Repositories.Impl
             };
         }
 
-        public async Task<CategoryEntity?> FindByCode(string categoryCode)
+        public async Task<Category?> FindByCode(string categoryCode)
         {
             return await _dbContext.Categories.FirstOrDefaultAsync(c => c.Code.Equals(categoryCode));
         }
 
-        public async Task<List<CategoryEntity>> GetAnalyticsAsync(string categoryCode)
+        public async Task<List<Category>> GetAnalyticsAsync(string categoryCode)
         {
 
-            IQueryable<CategoryEntity> categoriesQuery = _dbContext.Categories
+            IQueryable<Category> categoriesQuery = _dbContext.Categories
                 .Where(c => c.Transactions != null && c.Transactions.Any())
                 .Include(c => c.Transactions);
 
@@ -84,7 +84,7 @@ namespace PFMdotnet.Database.Repositories.Impl
 
         }
 
-        public async Task<List<CategoryEntity>> GetCategoriesAsync(string parentId)
+        public async Task<List<Category>> GetCategoriesAsync(string parentId)
         {
 
             var categories = parentId == null ?

@@ -1,6 +1,6 @@
 ﻿namespace PFMdotnet.Database.Entities
 {
-    public class CategoryEntity
+    public class Category
     {
         public string Code { get; set; }
 
@@ -8,6 +8,6 @@
 
         public string Name { get; set; }
 
-        public List<TransactionEntity>? Transactions { get; set; }
+        public List<Transaction>? Transactions { get; set; }
     }
 }

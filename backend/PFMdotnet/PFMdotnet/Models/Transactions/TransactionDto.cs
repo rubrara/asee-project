@@ -1,9 +1,8 @@
-﻿using PFMdotnet.Database.Entities;
-using PFMdotnet.Database.Enums;
+﻿using PFMdotnet.Database.Enums;
 
 namespace PFMdotnet.Models
 {
-    public class Transaction
+    public class TransactionDto
     {
         public string Id { get; set; }
         public string BeneficiaryName { get; set; }

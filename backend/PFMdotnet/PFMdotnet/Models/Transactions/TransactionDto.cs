@@ -1,4 +1,6 @@
-﻿using PFMdotnet.Database.Enums;
+﻿using PFMdotnet.Database.Entities;
+using PFMdotnet.Database.Enums;
+using PFMdotnet.Models.Split;
 
 namespace PFMdotnet.Models
 {
@@ -15,7 +17,7 @@ namespace PFMdotnet.Models
         public KindEnum Kind { get; set; }
 
         public string? CatCode { get; set; }
-
-
+        public List<TransactionSplitDto>? Splits { get; set; } 
     }
 }
+// select count(*) from transactions where "BeneficiaryName" like '%Chevron' or "BeneficiaryName" like '%Shell'

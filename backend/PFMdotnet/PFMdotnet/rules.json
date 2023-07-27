@@ -1,0 +1,38 @@
+[
+  {
+    "categoryCode": "105", // 10
+    "predicate": "\"Description\" LIKE '%Taxi%'"
+  },
+  {
+    "categoryCode": "12", //24
+    "predicate": "\"Description\" like 'Television bill'"
+  },
+  {
+    "categoryCode": "39", //360 
+    "predicate": "\"Mcc\"='5811'" // catering
+  },
+  {
+    "categoryCode": "38", //120
+    "predicate": "\"Description\" like '%Supermaket shopping%'" // supermarket shopping
+  },
+  {
+    "categoryCode": "5", //36
+    "predicate": "\"Mcc\"='7523'" // parking fee  
+  },
+  {
+    "categoryCode": "4", //12
+    "predicate": "\"BeneficiaryName\" like '%Chevron%' OR \"BeneficiaryName\" like '%Shell%'" // gas and fee
+  },
+  {
+    "categoryCode": "50", //24
+    "predicate": "\"Mcc\"='5655'" // sports
+  },
+  {
+    "categoryCode": "47", //12
+    "predicate": "\"Description\" like '%Personal trainer%'" // Personal Trainer
+  },
+  {
+    "categoryCode": "48", //26
+    "predicate": "\"BeneficiaryName\" like '%Generali%'" // Personal Trainer
+  }
+]

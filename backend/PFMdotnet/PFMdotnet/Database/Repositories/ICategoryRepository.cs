@@ -13,6 +13,6 @@ namespace PFMdotnet.Database.Repositories
         Task<Category?> FindByCode(string categoryCode);
 
         Task<List<Category>> GetAnalyticsAsync(string categoryCode);
-
+        Task SaveChangesAsync();
     }
 }

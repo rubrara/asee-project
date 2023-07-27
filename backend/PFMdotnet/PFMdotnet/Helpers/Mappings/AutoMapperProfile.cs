@@ -2,6 +2,8 @@
 using PFMdotnet.Commands;
 using PFMdotnet.Database.Entities;
 using PFMdotnet.Models;
+using PFMdotnet.Models.Split;
+using System.Collections.Generic;
 
 namespace PFMdotnet.Helpers.Mappings
 {
@@ -18,6 +20,9 @@ namespace PFMdotnet.Helpers.Mappings
             CreateMap<TransactionPagedList<Transaction>, TransactionPagedList<TransactionDto>>();
             CreateMap<ReturnDTO<TransactionDto>, ReturnDTO<Transaction>>();
             CreateMap<ReturnDTO<Transaction>, ReturnDTO<TransactionDto>>();
+            CreateMap<ReturnDTO<List<TransactionDto>>, ReturnDTO<List<Transaction>>>();
+            CreateMap<ReturnDTO<List<Transaction>>, ReturnDTO<List<TransactionDto>>>();
+            CreateMap<TransactionSplit, TransactionSplitDto>();
 
             // Categorries
             CreateMap<Category, CategoryDto>();

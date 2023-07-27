@@ -63,6 +63,7 @@ namespace PFMdotnet.Database.Repositories.Impl
         public async Task<Category?> FindByCode(string categoryCode)
         {
             return await _dbContext.Categories.FirstOrDefaultAsync(c => c.Code.Equals(categoryCode));
+
         }
 
         public async Task<List<Category>> GetAnalyticsAsync(string categoryCode)
@@ -92,6 +93,11 @@ namespace PFMdotnet.Database.Repositories.Impl
                 await _dbContext.Categories.Where(c => c.ParentCode.Equals(parentId)).ToListAsync();
 
             return categories;
+        }
+
+        public async Task SaveChangesAsync()
+        {
+            await _dbContext.SaveChangesAsync();
         }
     }
 }

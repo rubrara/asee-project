@@ -1,64 +1,23 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using AutoMapper;
+using Microsoft.EntityFrameworkCore;
 using PFMdotnet.Database.Entities;
 using PFMdotnet.Helpers;
 using PFMdotnet.Helpers.SearchReturnObjects.Transactions;
 using PFMdotnet.Models;
+using PFMdotnet.Models.Rules;
+using System.Data;
 
 namespace PFMdotnet.Database.Repositories.Impl
 {
     public class TransactionRepositoryImpl : ITransactionRepository
     {
-
+        private readonly IMapper _mapper;
         private readonly AppDbContext _dbContext;
-        private readonly ICategoryRepository _categoryRepository;
 
-        public TransactionRepositoryImpl(AppDbContext context, ICategoryRepository categoryRepository)
+        public TransactionRepositoryImpl(AppDbContext context, IMapper mapper)
         {
             _dbContext = context;
-            _categoryRepository = categoryRepository;   
-        }
-
-        public async Task<ReturnDTO<Transaction>> AddCategoryToTransaction(string id, string catCode)
-        {
-
-            List<string> errors = new();
-
-            Transaction transactionEntity = await Get(id);
-            if (transactionEntity == null)
-            {
-                errors.Add(string.Format("The Transaction Id: {0} doesn't exist", id));
-            };
-
-
-            var categoryEntity = await _dbContext.Categories.FirstOrDefaultAsync(c => c.Code.Equals(catCode));
-            if (categoryEntity == null) {
-                errors.Add(string.Format("The Category Code: {0} doesn't exist", catCode));
-            }
-
-            if (errors.Count != 0)
-            {
-                return new ReturnDTO<Transaction>
-                {
-                    Message = string.Format("Failed to add Category: '{0}' to Transacton: '{1}'", catCode, id),
-                    Errors = errors
-                };
-            }  
-
-            transactionEntity.CatCode = catCode;
-            transactionEntity.Category = categoryEntity;
-
-            categoryEntity.Transactions ??= new();
-
-            categoryEntity.Transactions.Add(transactionEntity);
-
-            await _dbContext.SaveChangesAsync();
-
-            return new ReturnDTO<Transaction>
-            {
-                Message = string.Format("Adding Category: '{0}' to Transacton: '{1}'", catCode, id),
-                Value = transactionEntity
-            };
-
+            _mapper = mapper;
         }
 
         public async Task DeleteTransactionSplits(Transaction transaction)
@@ -147,9 +106,14 @@ namespace PFMdotnet.Database.Repositories.Impl
             return res;
         }
 
-        
+        public async Task<TransactionDto> GetAsDto(string Id)
+        {
+            var res = await _dbContext.Transactions.Where(t => t.Id.Equals(Id)).Include(t => t.Splits).FirstOrDefaultAsync(p => p.Id == Id);
 
-        public async Task<TransactionPagedList<Transaction>> GetTransactionsAsQueryable(FilterTransactionsParams searchParams)
+            return _mapper.Map<TransactionDto>(res);
+        }
+
+        public async Task<TransactionPagedList<TransactionDto>> GetTransactionsAsQueryable(FilterTransactionsParams searchParams)
         {
 
             // Between Date Filter
@@ -159,7 +123,9 @@ namespace PFMdotnet.Database.Repositories.Impl
             // Transaction Kinds Filter
             if (searchParams.Kinds != null && searchParams.Kinds.Any())
             {
-                transactions = transactions.Where(t => searchParams.Kinds.Contains(t.Kind));
+                transactions = transactions
+                    .Where(t => searchParams.Kinds.Contains(t.Kind))
+                    .Include(t => t.Splits);
             }
 
             // Sorting
@@ -228,10 +194,7 @@ namespace PFMdotnet.Database.Repositories.Impl
             transactions = transactions.Skip((searchParams.Page - 1) * searchParams.PageSize)
                                .Take(searchParams.PageSize);
 
-
-            //return await transactions.ToListAsync();
-
-            return new TransactionPagedList<Transaction>
+            return new TransactionPagedList<TransactionDto>
             {
                 Page = searchParams.Page,
                 PageSize = searchParams.PageSize,
@@ -242,9 +205,36 @@ namespace PFMdotnet.Database.Repositories.Impl
                 StartDate = searchParams.StartDate,
                 EndDate = searchParams.EndDate,
                 Kinds = searchParams.Kinds,
-                Items = await transactions.ToListAsync()
-
+                Items = _mapper.Map<List<TransactionDto>>(await transactions.ToListAsync())
             };
+        }
+
+        public Task<ReturnDTO<Transaction>> AddCategoryToTransaction(string id, string catCode)
+        {
+            throw new NotImplementedException();
+        }
+
+        public async Task SaveChangesAsync()
+        {
+            await _dbContext.SaveChangesAsync();
+        }
+
+        public async Task<int> AutoCategorize(List<CategorizationRule> rules)
+        {
+            int total = 0;
+
+            try
+            {
+                foreach (var rule in rules)
+                {
+                    total += await _dbContext.Database.ExecuteSqlRawAsync($"update transactions set \"CatCode\" = '{rule.CategoryCode}' where {rule.Predicate}");
+                }       
+            } catch
+            {
+                total = -1;
+            }
+
+            return total;
         }
     }
  }

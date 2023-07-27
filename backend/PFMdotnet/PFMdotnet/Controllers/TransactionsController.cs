@@ -83,20 +83,32 @@ namespace PFMdotnet.Controllers
 
         [HttpPost]
         [Route("{id}/categorize")]
-        public async Task<IActionResult> CategorizeTransaction([FromRoute] string id, [FromQuery] string catCode)
-        {
-            
+        public async Task<IActionResult> CategorizeTransaction([FromRoute] string id, [FromQuery] string? catCode)
+        {            
             var result = await _transactionService.AddCategoryToTransaction(id, catCode);
 
-            if (result.Errors.Count != 0)
+            if (result.Errors != null)
             {
-                Console.WriteLine(result.Errors.Count);
                 return NotFound(result);
             }
 
-            result.Errors.Add("None");
-
             return Ok(result);   
+
+        }
+
+        [HttpPost]
+        [Route("categorize")]
+        public async Task<IActionResult> CategorizeManyTransactions([FromQuery] string? ids, [FromQuery] string? catCode)
+        {
+
+            var result = await _transactionService.AddCategoryToManyTransactions(ids, catCode);
+
+            if (result.Errors != null)
+            {
+                return NotFound(result);
+            }
+
+            return Ok(result);
 
         }
 
@@ -114,7 +126,21 @@ namespace PFMdotnet.Controllers
             return Ok(result);
         }
 
-       
+        [HttpPost("auto-categorize")]
+        public async Task<IActionResult> AutoCategorize()
+        {
+
+            var result = await _transactionService.AutoCategorize();
+
+            if (result.Error != null)
+            {
+                return BadRequest(result);
+            }
+
+            return Ok(result);
+        }
+
+
 
     }
 }

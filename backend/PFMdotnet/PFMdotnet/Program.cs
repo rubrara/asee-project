@@ -55,7 +55,7 @@ app.Run();
 
 string CreateConnectionString(IConfiguration configuration)
 {
-    var username = Environment.GetEnvironmentVariable("DATABASE_USERNAME")?? configuration["Database:Username"]; 
+    var username = Environment.GetEnvironmentVariable("DATABASE_USERNAME") ?? configuration["Database:Username"];
     var password = Environment.GetEnvironmentVariable("DATABASE_PASSWORD") ?? configuration["Database:Password"];
     var dbName = Environment.GetEnvironmentVariable("DATABASE_NAME") ?? configuration["Database:Name"];
     var host = Environment.GetEnvironmentVariable("DATABASE_HOST") ?? configuration["Database:Host"];

@@ -1,12 +1,15 @@
 ﻿using AutoMapper;
-
+using Newtonsoft.Json;
 using PFMdotnet.Commands;
+using PFMdotnet.Database;
 using PFMdotnet.Database.Entities;
 using PFMdotnet.Database.Enums;
 using PFMdotnet.Database.Repositories;
 using PFMdotnet.Helpers;
+using PFMdotnet.Helpers.SearchReturnObjects;
 using PFMdotnet.Helpers.SearchReturnObjects.Transactions;
 using PFMdotnet.Models;
+using PFMdotnet.Models.Rules;
 
 namespace PFMdotnet.Services.Impl
 {
@@ -26,10 +29,139 @@ namespace PFMdotnet.Services.Impl
         public async Task<ReturnDTO<TransactionDto>> AddCategoryToTransaction(string id, string catCode)
         {
 
-            var result = await _transactionRepository.AddCategoryToTransaction(id, catCode);
+            List<string> errors = new();
 
-            return _mapper.Map<ReturnDTO<TransactionDto>>(result);
+            var returnDto = new ReturnDTO<TransactionDto>();
 
+            if (string.IsNullOrEmpty(catCode))
+            {
+                errors.Add("You have not given category code!");
+            }
+
+            Transaction transactionEntity = await _transactionRepository.Get(id);  
+            if (transactionEntity == null)
+            {
+                errors.Add(string.Format("The Transaction Id: {0} doesn't exist", id));
+            };
+
+
+            var categoryEntity = await _categoryRepository.FindByCode(catCode); 
+            if (categoryEntity == null)
+            {
+                errors.Add(string.Format("The Category Code: {0} doesn't exist", catCode));
+            }
+
+            if (errors.Count != 0)
+            {
+                returnDto.Message = string.Format("Failed to add Category: '{0}' to Transacton: '{1}'", catCode, id);
+                returnDto.Errors = errors;
+
+                return returnDto;
+            }
+
+            transactionEntity.CatCode = catCode;
+            transactionEntity.Category = categoryEntity;
+
+            categoryEntity.Transactions ??= new();
+
+            categoryEntity.Transactions.Add(transactionEntity);
+            await _transactionRepository.SaveChangesAsync();
+
+            return new ReturnDTO<TransactionDto>
+            {
+                Message = string.Format("Adding Category: '{0}' to Transacton: '{1}'", catCode, id),
+                Result = _mapper.Map<TransactionDto>(transactionEntity)
+            };
+
+
+        }
+
+        public async Task<ReturnDTO<List<TransactionDto>>> AddCategoryToManyTransactions(string ids, string catCode)
+        {
+            var idList = new List<string>();
+
+            if (!string.IsNullOrEmpty(ids))
+            { 
+                char[] delimiters = { ' ', ',' };
+
+                idList = ids.Split(delimiters, StringSplitOptions.RemoveEmptyEntries).ToList();
+            }
+
+            List<string> errors = new();
+            var returnDto = new ReturnDTO<List<TransactionDto>>();
+
+            if (string.IsNullOrEmpty(catCode))
+            {
+                errors.Add("You have not given category code!");
+            }
+            
+
+            if (!idList.Any())
+            {
+
+                errors.Add("You have not given any transactions!");
+
+                return new ReturnDTO<List<TransactionDto>>
+                {
+                    Message = "Failed to assign category to transactions",
+                    Errors = errors
+                };
+
+            }
+            var categoryEntity = await _categoryRepository.FindByCode(catCode);
+
+            if (categoryEntity == null)
+            {
+                errors.Add(string.Format("The category code: '{0}' does not exist", catCode));
+
+                return new ReturnDTO<List<TransactionDto>>
+                {
+                    Message = "Failed to assign category to transactions",
+                    Errors = errors
+                };
+
+            }
+
+            List<TransactionDto> transactionList = new List<TransactionDto>();
+
+            foreach (var id in idList)
+            {
+                Transaction transactionEntity = await _transactionRepository.Get(id);
+                if (transactionEntity == null)
+                {
+                    errors.Add(string.Format("The Transaction Id: {0} doesn't exist", id));
+                }
+                else
+                {
+
+                    transactionEntity.CatCode = catCode;
+                    transactionEntity.Category = categoryEntity;
+
+                    categoryEntity.Transactions ??= new();
+
+                    categoryEntity.Transactions.Add(transactionEntity);
+
+                    transactionList.Add(_mapper.Map<TransactionDto>(transactionEntity));
+                }
+            }
+
+            if (errors.Any())
+            {
+
+                return new ReturnDTO<List<TransactionDto>>
+                {
+                    Message = "Failed to assign category to transactions",
+                    Errors = errors
+                };
+            }
+
+            await _transactionRepository.SaveChangesAsync();
+
+
+            returnDto.Result = transactionList;
+            returnDto.Message = "Successfuly added Category for all the given Transactons";
+
+            return returnDto;
 
         }
 
@@ -82,12 +214,12 @@ namespace PFMdotnet.Services.Impl
                 return res;
             }
 
-            res.Value = _mapper.Map<TransactionDto>(transactionEntity);
+            res.Result = _mapper.Map<TransactionDto>(transactionEntity);
 
             return res;
         }
 
-        public async Task<TransactionPagedList<Transaction>> GetTransactionsAsQueriable(SearchTransactionParams searchParams)
+        public async Task<TransactionPagedList<TransactionDto>> GetTransactionsAsQueriable(SearchTransactionParams searchParams)
         {
 
             List<KindEnum>? kinds = new();
@@ -156,7 +288,7 @@ namespace PFMdotnet.Services.Impl
 
             if (errors.Any())
             {
-                return new TransactionPagedList<Transaction>
+                return new TransactionPagedList<TransactionDto>
                 {
                     Message = "Import of transactions is not allowed!",
                     Errors = errors
@@ -179,7 +311,7 @@ namespace PFMdotnet.Services.Impl
 
             if (page > result.TotalPages)
             {
-                var res = new TransactionPagedList<Transaction>
+                var res = new TransactionPagedList<TransactionDto>
                 {
                     Message = "Import of transactions is not allowed!",
                     Errors = new()
@@ -188,6 +320,14 @@ namespace PFMdotnet.Services.Impl
                 res.Errors.Add(string.Format("You can NOT access page: {0} since there are {1} total pages!", page, result.TotalPages));
 
                 return res;
+            }
+
+            foreach(var item in result.Items)
+            {
+                if (!item.Splits.Any())
+                {
+                    item.Splits = null;
+                }
             }
 
             return result;
@@ -214,13 +354,6 @@ namespace PFMdotnet.Services.Impl
 
                 return returnDto;
             }
-
-            // treba da se podeli transakcijata spored parameters.catcodes
-            // treba da se podeli na parameters.count splits
-            // ako ne postoj parameters.CatCode hendlaj errors
-            // ako sumata na amaounts od splits != transaction.amount hendlaj errors
-
-            // Check if the sum is equal with the transaction amount
 
             if (parameters.Splits.Count < 2)
             {
@@ -287,6 +420,39 @@ namespace PFMdotnet.Services.Impl
                 return returnDto;
             }
 
+
+            
+        }
+
+        public async Task<CategorizationReturn> AutoCategorize()
+        {
+            string json = File.ReadAllText("C:\\Users\\koki_\\source\\repos\\asee-project\\backend\\PFMdotnet\\PFMdotnet\\rules.json");
+            var _rules = JsonConvert.DeserializeObject<List<CategorizationRule>>(json);
+
+            var result = new CategorizationReturn();
+            var total = await (_transactionRepository.AutoCategorize(_rules));
+
+            if (total == -1)
+            {
+                return new CategorizationReturn()
+                {
+                    Message = "Could not auto-categorize fully",
+                    Error = "Something went wrong when doing the query"
+                };
+            }
+
+            if (total > 0)
+            {
+                return new CategorizationReturn()
+                {
+                    Message = string.Format("Successful autocategorization of {0} transactions", total)
+                };
+            }
+
+            return new CategorizationReturn()
+            {
+                Message = "Could not auto-categorize any transactions. No good rules"
+            };
 
             
         }

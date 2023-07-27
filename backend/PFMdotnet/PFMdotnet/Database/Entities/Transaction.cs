@@ -17,6 +17,6 @@ namespace PFMdotnet.Database.Entities
         public KindEnum Kind { get; set; }
         public Category? Category { get; set; }
         public string? CatCode { get; set; }
-        public List<TransactionSplit>? Splits { get; set; }
+        public List<TransactionSplit>? Splits { get; set; } = null;
     }
 }

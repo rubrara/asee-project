@@ -140,14 +140,23 @@ namespace PFMdotnet.Services.Impl
 
                     var category = categories.Find(c => c.Code.Equals(categoryCode));
 
-                    var categoryTransactions = category.Transactions
+                    
+
+                    double amountFromCat = 0;
+                    int countFromCat = 0;
+
+                    if (category != null)
+                    {
+                        var categoryTransactions = category.Transactions
                                 .Where(t => directions.Contains(t.Direction) && (t.Date > startDate && t.Date < endDate))
                                 .ToList();
 
+                        amountFromCat = categoryTransactions.Sum(t => t.Amount);
+                        countFromCat = categoryTransactions.Count();
+                    }
                     
 
-                    var amountFromCat = categoryTransactions.Sum(t => t.Amount);
-                    var countFromCat = categoryTransactions.Count();
+                    
 
                     if(countFromCat + countToAdd == 0)
                     {
@@ -159,7 +168,7 @@ namespace PFMdotnet.Services.Impl
                     result.Analytics = new AnalyticsDto()
                     {
                         CatCode = categoryCode,
-                        Amount = amountFromCat + amountToAdd,
+                        Amount = Math.Round(amountFromCat + amountToAdd, 2),
                         Count = countFromCat + countToAdd
                     };
 
@@ -235,6 +244,8 @@ namespace PFMdotnet.Services.Impl
 
             foreach (var analytics in groupedAnalytics)
             {
+                analytics.Value.Amount = Math.Round(analytics.Value.Amount, 2);
+
                 if (childCategories.Contains(analytics.Key))
                 {
                     children.Groups.Add(analytics.Value);

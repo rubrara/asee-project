@@ -3,7 +3,7 @@ using PFMdotnet.Database.Entities;
 using PFMdotnet.Helpers.SearchReturnObjects.Analytics;
 using PFMdotnet.Helpers.SearchReturnObjects.Categories;
 using PFMdotnet.Models;
-using PFMdotnet.Models.Analytics;
+using PFMdotnet.Models.Categories;
 
 namespace PFMdotnet.Services
 {
@@ -11,7 +11,7 @@ namespace PFMdotnet.Services
     {
         Task<AfterBulkAdd<Category>> CreateCategoryBulk(List<CreateCategoryCommand> commands);
 
-        Task<CategoriesReturnDto> GetCategoriesAsQueriable(string parentId);
+        Task<CategoriesPagedList<CategoryDto>> GetCategoriesAsQueriable(SearchCategoriesParams searchParams);
         Task<CategoriesReturnDto> GetCategory(string catCode);
         Task<AnalyticsReturnObject> GetAnalytics(AnalyticsSearchParams searchParams);
     }

@@ -3,6 +3,7 @@ using Newtonsoft.Json.Linq;
 using PFMdotnet.Database.Entities;
 using PFMdotnet.Database.Enums;
 using PFMdotnet.Helpers;
+using PFMdotnet.Helpers.SearchReturnObjects.Categories;
 using PFMdotnet.Models;
 
 namespace PFMdotnet.Database.Repositories.Impl
@@ -69,30 +70,51 @@ namespace PFMdotnet.Database.Repositories.Impl
         public async Task<List<Category>> GetAnalyticsAsync(string categoryCode)
         {
 
-            IQueryable<Category> categoriesQuery = _dbContext.Categories
+            var categoriesQuery = categoryCode == null ?
+                 await _dbContext.Categories
                 .Where(c => c.Transactions != null && c.Transactions.Any())
-                .Include(c => c.Transactions);
+                .Include(c => c.Transactions).ToListAsync()
+                :
+                 await _dbContext.Categories
+                .Where(c => (c.Transactions != null && c.Transactions.Any()) && (c.Code.Equals(categoryCode) || c.ParentCode.Equals(categoryCode)))
+                .Include(c => c.Transactions).ToListAsync();
 
-            if (categoryCode is not null)
-            {
-                categoriesQuery = categoriesQuery
-                    .Where(c => c.Code.Equals(categoryCode) || c.ParentCode.Equals(categoryCode));
-            }
-
-            var categories = await categoriesQuery.ToListAsync();
-
-            return categories;
-
+            return categoriesQuery;
         }
 
-        public async Task<List<Category>> GetCategoriesAsync(string parentId)
+        public async Task<List<Category>> GetCategoriesAsync(FilterCategoriesParams searchParams)
         {
 
-            var categories = parentId == null ?
-                await _dbContext.Categories.Where(c => string.IsNullOrEmpty(c.ParentCode)).ToListAsync() :
-                await _dbContext.Categories.Where(c => c.ParentCode.Equals(parentId)).ToListAsync();
+            IQueryable<Category> categories = searchParams.ParentId == null ?
+                _dbContext.Categories.Where(c => string.IsNullOrEmpty(c.ParentCode)).Include(c => c.Transactions) :
+                _dbContext.Categories.Where(c => c.ParentCode.Equals(searchParams.ParentId)).Include(c => c.Transactions);
 
-            return categories;
+            int page = searchParams.Page;
+            int pageSize = searchParams.PageSize;
+
+            if (!string.IsNullOrEmpty(searchParams.SortBy))
+            {
+                switch (searchParams.SortBy)
+                {
+                    case "code":
+                        categories = string.Equals(searchParams.SortOrder, SortOrder.Asc.ToString(), StringComparison.OrdinalIgnoreCase) ?
+                            categories.OrderBy(c => c.Code) : categories.OrderByDescending(c => c.Code);
+                        break;
+
+                    case "transactions":
+                        categories = string.Equals(searchParams.SortOrder, SortOrder.Asc.ToString(), StringComparison.OrdinalIgnoreCase) ?
+                            categories.OrderBy(c => c.Transactions.Count) : categories.OrderByDescending(c => c.Transactions.Count);
+                        break;
+                    default:
+                        categories = string.Equals(searchParams.SortOrder, SortOrder.Asc.ToString(), StringComparison.OrdinalIgnoreCase) ?
+                            categories.OrderBy(c => c.Code) : categories.OrderByDescending(c => c.Code);
+                        break;
+                }
+            }
+            else { categories = categories.OrderBy(c => c.Code); }
+
+            
+            return await categories.ToListAsync();
         }
 
         public async Task SaveChangesAsync()

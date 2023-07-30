@@ -1,7 +1,7 @@
 ﻿using CsvHelper.Configuration.Attributes;
 using PFMdotnet.Database.Enums;
 
-namespace PFMdotnet.Models.Analytics
+namespace PFMdotnet.Helpers.SearchReturnObjects.Analytics
 {
     public class AnalyticsSearchParams
     {

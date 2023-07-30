@@ -4,8 +4,12 @@ namespace PFMdotnet.Helpers.SearchReturnObjects.Analytics
 {
     public class AnalyticsReturnObject
     {
-        public string? Message { get; set; } 
+        public string? Message { get; set; }
+
+        public List<AnalyticsDto>? Groups { get; set; } = null;
+
         public AnalyticsGroup? top_level { get; set; } = null;
+
         public AnalyticsGroup? sub_category { get; set; } = null;
 
         public AnalyticsDto? Analytics { get; set; } = null;

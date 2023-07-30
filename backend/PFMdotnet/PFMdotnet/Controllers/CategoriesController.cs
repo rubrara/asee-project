@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using PFMdotnet.Commands;
 using PFMdotnet.Helpers.ParseCSV;
+using PFMdotnet.Helpers.SearchReturnObjects.Categories;
 using PFMdotnet.Models;
 using PFMdotnet.Services;
 
@@ -28,11 +29,11 @@ namespace PFMdotnet.Controllers
 
             if (file == null || file.Length == 0)
             {
-                return NotFound(new
+                return BadRequest(new
                 {
                     Message = "Uploading CSV file",
                     Error = "No file given. Please upload a CSV file.",
-                    StatusCode = StatusCodes.Status404NotFound
+                    StatusCode = StatusCodes.Status400BadRequest
                 });
             }
 
@@ -42,7 +43,7 @@ namespace PFMdotnet.Controllers
                 {
                     Message = "Uploading CSV file",
                     Error = "The file is not in CSV format.",
-                    StatusCode = StatusCodes.Status403Forbidden
+                    StatusCode = StatusCodes.Status400BadRequest
                 });
             }
 
@@ -52,10 +53,10 @@ namespace PFMdotnet.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetCategories([FromQuery] string? parentId)
+        public async Task<IActionResult> GetCategories([FromQuery] SearchCategoriesParams searchParams)
         {
 
-            var result = await _categoryService.GetCategoriesAsQueriable(parentId);
+            var result = await _categoryService.GetCategoriesAsQueriable(searchParams);
 
             if (result.Errors != null)
             {
@@ -63,7 +64,7 @@ namespace PFMdotnet.Controllers
             }
 
             return Ok(result);
-        }
+    }
 
         [HttpGet]
         [Route("{id}")]

@@ -118,7 +118,8 @@ namespace PFMdotnet.Database.Repositories.Impl
 
             // Between Date Filter
             IQueryable<Transaction> transactions = _dbContext.Transactions
-                .Where(t => t.Date >= searchParams.StartDate && t.Date <= searchParams.EndDate);
+                .Where(t => t.Date >= searchParams.StartDate && t.Date <= searchParams.EndDate)
+                .Include(t => t.Splits);
 
             // Transaction Kinds Filter
             if (searchParams.Kinds != null && searchParams.Kinds.Any())
@@ -185,7 +186,7 @@ namespace PFMdotnet.Database.Repositories.Impl
 
             else { transactions = transactions.OrderBy(t => t.Id); }
 
-            int pageSize = (int)searchParams.PageSize;
+            int pageSize = searchParams.PageSize;
 
             int totalCount = transactions.Count();
             int totalPages = (int)Math.Ceiling(totalCount * 1.0 / searchParams.PageSize);
@@ -204,7 +205,6 @@ namespace PFMdotnet.Database.Repositories.Impl
                 SortOrder = searchParams.SortOrder,
                 StartDate = searchParams.StartDate,
                 EndDate = searchParams.EndDate,
-                Kinds = searchParams.Kinds,
                 Items = _mapper.Map<List<TransactionDto>>(await transactions.ToListAsync())
             };
         }

@@ -1,4 +1,5 @@
 ﻿using PFMdotnet.Database.Entities;
+using PFMdotnet.Helpers.SearchReturnObjects.Categories;
 using PFMdotnet.Models;
 
 namespace PFMdotnet.Database.Repositories
@@ -8,7 +9,7 @@ namespace PFMdotnet.Database.Repositories
 
         Task<AfterBulkAdd<Category>> CreateBulk(List<Category> categories, int chunkSize);
 
-        Task<List<Category>> GetCategoriesAsync(string parentId);
+        Task<List<Category>> GetCategoriesAsync(FilterCategoriesParams searchParams);
 
         Task<Category?> FindByCode(string categoryCode);
 

@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.SignalR;
 using PFMdotnet.Commands;
 using PFMdotnet.Database.Entities;
@@ -6,8 +7,11 @@ using PFMdotnet.Database.Enums;
 using PFMdotnet.Database.Repositories;
 using PFMdotnet.Helpers.SearchReturnObjects.Analytics;
 using PFMdotnet.Helpers.SearchReturnObjects.Categories;
+using PFMdotnet.Helpers.Validation;
 using PFMdotnet.Models;
 using PFMdotnet.Models.Analytics;
+using PFMdotnet.Models.Categories;
+using System.Data;
 using System.Reflection.Emit;
 
 namespace PFMdotnet.Services.Impl
@@ -44,150 +48,71 @@ namespace PFMdotnet.Services.Impl
         public async Task<AnalyticsReturnObject> GetAnalytics(AnalyticsSearchParams searchParams)
         {
             var categoryCode = searchParams.Catcode;
-            var categories = await _categoryRepository.GetAnalyticsAsync(categoryCode);
-
-            List<string> errors = new();
             var result = new AnalyticsReturnObject()
             {
                 Message = "Retrieve spending analytics by category or by subcategories witin category"
             };
 
-            DateOnly startDate;
-            DateOnly endDate;
-
-            if (string.IsNullOrEmpty(searchParams.StartDate))
+            if (categoryCode != null)
             {
-                startDate = DateOnly.MinValue;
-
-            }
-            else if (!DateOnly.TryParse(searchParams.StartDate, out startDate))
-            {
-                errors.Add(string.Format("Invalid date format for the StartDate: '{0}'. Please provide a valid date in the format 'YYYY-MM-DD'.", searchParams.StartDate));
-
+                if (await _categoryRepository.FindByCode(categoryCode) == null)
+                {
+                    result.Result = string.Format("The Category with code: '{0}' doesn't exist", categoryCode);
+                    return result;
+                }
             }
 
-            if (string.IsNullOrEmpty(searchParams.EndDate))
+            var parameters = Validate.ValidateAnalyticParams(searchParams);
+
+            if (parameters.Errors != null)
             {
-                endDate = DateOnly.MaxValue;
-
-            }
-            else if (!DateOnly.TryParse(searchParams.EndDate, out endDate))
-            {
-                errors.Add(string.Format("Invalid date format for the EndDate: '{0}'. Please provide a valid date in the format 'YYYY-MM-DD'.", searchParams.EndDate));
-            }
-
-            List<DirectionEnum> directions = new();
-            DirectionEnum direction = DirectionEnum.d;
-
-            if (string.IsNullOrEmpty(searchParams.Direction))
-            {
-                directions = Enum.GetValues(typeof(DirectionEnum)).Cast<DirectionEnum>().ToList();
-
-            } else if (!Enum.TryParse(searchParams.Direction, true, out direction))
-            {
-                errors.Add(string.Format("'{0}' is NOT part of the Direction enum.", searchParams.Direction));
-            }
-
-            
-
-            if (categories.Count == 0)
-            {
-                errors.Add("There are NOT any Transactions on that Category Code");
-            }
-
-
-            if (errors.Any())
-            {
-                result.Errors = errors;
+                result.Errors = parameters.Errors;
 
                 return result;
             }
 
-            directions.Add(direction);
+            var categories = await _categoryRepository.GetAnalyticsAsync(categoryCode);
 
-
-            do
+            if (categoryCode != null)
             {
-                if (categoryCode != null)
+                double amountToAdd = 0;
+                int countToAdd = 0;      
+
+                foreach (var cat in categories)
                 {
+                    var transactions = cat.Transactions
+                        .Where(t => parameters.Directions.Contains(t.Direction) && (t.Date > parameters.StartDate && t.Date < parameters.EndDate))
+                        .ToList();
 
-                    if (_categoryRepository.FindByCode(categoryCode) == null)
-                    {
-                        errors.Add(string.Format("The Category with code: '{0}' doesn't exist", categoryCode));
-                        break;
-                    }
+                    amountToAdd += transactions.Sum(t => t.Amount);
+                    countToAdd += transactions.Count();
+                }                    
 
-                    var tmpCats = categories.Where(c => c.ParentCode.Equals(categoryCode)).ToList();
-
-
-                    double amountToAdd = 0;
-                    int countToAdd = 0;
-
-                    
-
-                    if (tmpCats.Any())
-                    {
-                        foreach (var cat in tmpCats)
-                        {
-                            var transactions = cat.Transactions
-                                .Where(t => directions.Contains(t.Direction) && (t.Date > startDate && t.Date < endDate))
-                                .ToList();
-
-                            amountToAdd += transactions.Sum(t => t.Amount);
-                            countToAdd = transactions.Count();
-                        }
-                    }
-
-                    var category = categories.Find(c => c.Code.Equals(categoryCode));
-
-                    
-
-                    double amountFromCat = 0;
-                    int countFromCat = 0;
-
-                    if (category != null)
-                    {
-                        var categoryTransactions = category.Transactions
-                                .Where(t => directions.Contains(t.Direction) && (t.Date > startDate && t.Date < endDate))
-                                .ToList();
-
-                        amountFromCat = categoryTransactions.Sum(t => t.Amount);
-                        countFromCat = categoryTransactions.Count();
-                    }
-                    
-
-                    
-
-                    if(countFromCat + countToAdd == 0)
-                    {
-                        result.Result = "The are not any Transactions for the category code given the filters";
-                        return result;
-                    }
-
-
-                    result.Analytics = new AnalyticsDto()
-                    {
-                        CatCode = categoryCode,
-                        Amount = Math.Round(amountFromCat + amountToAdd, 2),
-                        Count = countFromCat + countToAdd
-                    };
-
+                if(countToAdd == 0)
+                {
+                    result.Result = "The are not any Transactions for the category code given the filters";
                     return result;
                 }
 
-            } while (false);            
+                result.Groups = new List<AnalyticsDto>()
+                {
+                    new AnalyticsDto()
+                    {
+                        CatCode = categoryCode,
+                        Amount = Math.Round(amountToAdd, 2),
+                        Count = countToAdd
+                    }
+                };
 
-           
+                return result;
+            }
 
-
-            List<string> childCategories = new();
-
-            var groupedAnalytics = new Dictionary<string, AnalyticsDto>();
+            result.Groups = new List<AnalyticsDto>();
 
             foreach (var cat in categories)
             {
                 var transactions = cat.Transactions
-                    .Where(t => directions.Contains(t.Direction) && (t.Date > startDate && t.Date < endDate))
+                    .Where(t => parameters.Directions.Contains(t.Direction) && (t.Date > parameters.StartDate && t.Date < parameters.EndDate))
                     .ToList();
 
                 var amount = transactions.Sum(t => t.Amount);
@@ -195,77 +120,26 @@ namespace PFMdotnet.Services.Impl
 
                 if (count == 0) continue;
 
-                if (!string.IsNullOrEmpty(cat.ParentCode))
+                result.Groups.Add(new AnalyticsDto
                 {
-                    childCategories.Add(cat.Code);
-
-                    if (!groupedAnalytics.TryGetValue(cat.ParentCode, out var parentAnalytics))
-                    {
-                        parentAnalytics = new()
-                        {
-                            CatCode = cat.ParentCode,
-                            Amount = 0,
-                            Count = 0
-                        };
-                        groupedAnalytics[cat.ParentCode] = parentAnalytics;
-                    }
-
-                    parentAnalytics.Amount += amount;
-                    parentAnalytics.Count += count;
-                }
-
-                if (!groupedAnalytics.ContainsKey(cat.Code))
-                {
-                    groupedAnalytics[cat.Code] = new()
-                    {
-                        CatCode = cat.Code,
-                        Amount = amount,
-                        Count = count
-                    };
-                }
-                else
-                {
-                    var item = groupedAnalytics[cat.Code];
-                    item.Count += count;
-                    item.Amount += amount;
-                }
+                    CatCode = cat.Code,
+                    Amount = Math.Round(amount, 2),
+                    Count = count
+                });              
             }
-
-            if (groupedAnalytics.Count == 0)
-            {
-
-                result.Result = "The database doesn't contain the spendings given the filters";
-
-                return result;
-            }
-
-            var children = new AnalyticsGroup();
-            var parents = new AnalyticsGroup();
-
-            foreach (var analytics in groupedAnalytics)
-            {
-                analytics.Value.Amount = Math.Round(analytics.Value.Amount, 2);
-
-                if (childCategories.Contains(analytics.Key))
-                {
-                    children.Groups.Add(analytics.Value);
-                } else
-                {
-                    parents.Groups.Add(analytics.Value);
-                }
-            }
-
-            result.top_level = parents.Groups.Any() ? parents : null;
-            result.sub_category = children.Groups.Any() ? children : null;
 
             return result;
         }
 
-        public async Task<CategoriesReturnDto> GetCategoriesAsQueriable(string parentId)
+        public async Task<CategoriesPagedList<CategoryDto>> GetCategoriesAsQueriable(SearchCategoriesParams searchParams)
         {
-            // _mapper.Map<Category>(category)
-            var categories = _mapper.Map<List<CategoryDto>>( await _categoryRepository.GetCategoriesAsync(parentId));
-            var res = new CategoriesReturnDto()
+    
+            var searchCategoriesParams = Validate.ValidateCategoriesFilterParams(searchParams);
+            string parentId = searchCategoriesParams.ParentId;
+
+            var categories = _mapper.Map<List<CategoryDto>>( await _categoryRepository.GetCategoriesAsync(searchCategoriesParams));
+
+            var res = new CategoriesPagedList<CategoryDto>()
             {
                 Message = "Getting the top-level categories from database"
             };
@@ -277,47 +151,42 @@ namespace PFMdotnet.Services.Impl
 
                 if (await _categoryRepository.FindByCode(parentId) == null)
                 {
-                    res.Errors = new()
-                    {
-                        string.Format("'{0}' doesn't exist in the database", parentId)
-                    };
-
+                    res.Message = string.Format("'{0}' doesn't exist in the database", parentId);
                     return res;
                 }
-
-                if(!categories.Any())
+                /*if(!categories.Any())
                 {
-                    res.Result = string.Format("'{0}' doesn't have any sub-categories", parentId);
-
+                    res.Message = string.Format("'{0}' doesn't have any sub-categories", parentId);
                     return res;
-                }
+                }*/
 
-                res.Categories = new();
-
-                foreach (var category in categories)
-                {
-                    res.Categories.Add(category);
-                }
-
+            }
+            else if(!categories.Any()) {
+                res.Message = "There are not any top-level categories";
                 return res;
             }
-            else
+
+            int page = searchCategoriesParams.Page;
+            int pageSize = searchCategoriesParams.PageSize;
+            int totalCount = categories.Count();
+            int totalPages = (int) Math.Ceiling(totalCount * 1.0 / pageSize);
+
+            categories = categories.Skip((page - 1) * pageSize)
+                               .Take(pageSize).ToList();
+
+            res.Page = page;
+            res.PageSize = pageSize;
+            res.TotalCount = totalCount;
+            res.TotalPages = totalPages;
+            res.Items = new();
+
+            foreach (var category in categories)
             {
-                if(!categories.Any()) {
-                    res.Result = "There are not any top-level categories";
-                    return res;
-                }
-
-                res.Categories = new();
-
-                foreach (var category in categories)
-                {
-                    res.Categories.Add(category);
-                }
-
-                return res;
+                res.Items.Add(category);
             }
-            
+
+            return res;
+
         }
 
         public async Task<CategoriesReturnDto> GetCategory(string catCode)

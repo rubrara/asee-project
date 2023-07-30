@@ -1,0 +1,1073 @@
+{
+	"info": {
+		"_postman_id": "ca4e1b42-881e-4135-8838-6fc059881d6e",
+		"name": "ASSECO PROJECT",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "21975047"
+	},
+	"item": [
+		{
+			"name": "Transactions",
+			"item": [
+				{
+					"name": "Import Transactions from CSV",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {\r",
+									"    pm.response.to.have.status(200);\r",
+									"});\r",
+									"\r",
+									"const schema = {\r",
+									"  \"type\": \"object\",\r",
+									"  \"properties\": {\r",
+									"    \"message\": {\r",
+									"      \"type\": \"string\"\r",
+									"    },\r",
+									"    \"totalRowsAdded\": {\r",
+									"      \"type\": \"integer\"\r",
+									"    },\r",
+									"    \"totalRowsUpdated\": {\r",
+									"      \"type\": \"integer\"\r",
+									"    }\r",
+									"  },\r",
+									"  \"required\": [\"message\"]\r",
+									"}\r",
+									"\r",
+									"pm.test(\"Response payload matches schema\", function () {\r",
+									"    const jsonData = pm.response.json();\r",
+									"    pm.expect(tv4.validate(jsonData, schema)).to.be.true;\r",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "file",
+									"type": "file",
+									"src": "/C:/Users/koki_/Desktop/asseco/proektFiles/transactions.csv"
+								},
+								{
+									"key": "file",
+									"type": "file",
+									"src": "/C:/Users/koki_/Desktop/asseco/proektFiles/examleTransactions.csv",
+									"disabled": true
+								},
+								{
+									"key": "file",
+									"type": "file",
+									"src": "/C:/Users/koki_/Desktop/asseco/ASEE Internship/useful-links.txt",
+									"disabled": true
+								}
+							]
+						},
+						"url": {
+							"raw": "http://localhost:5136/transactions/import",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "5136",
+							"path": [
+								"transactions",
+								"import"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Transactions Filtered",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {\r",
+									"    pm.response.to.have.status(200);\r",
+									"});\r",
+									"pm.test(\"Response has the expected keys\", function () {\r",
+									"    const jsonData = pm.response.json();\r",
+									"    pm.expect(jsonData).to.have.all.keys(\r",
+									"        \"totalCount\",\r",
+									"        \"pageSize\",\r",
+									"        \"page\",\r",
+									"        \"totalPages\",\r",
+									"        \"sortBy\",\r",
+									"        \"sortOrder\",\r",
+									"        \"startDate\",\r",
+									"        \"endDate\",\r",
+									"        \"items\"\r",
+									"    );\r",
+									"});\r",
+									"\r",
+									"pm.test(\"Items array is not empty\", function () {\r",
+									"    const jsonData = pm.response.json();\r",
+									"    pm.expect(jsonData.items).to.be.an(\"array\").and.not.empty;\r",
+									"});\r",
+									"\r",
+									"const schema = {\r",
+									"  \"type\": \"object\",\r",
+									"  \"properties\": {\r",
+									"    \"totalCount\": { \"type\": \"integer\" },\r",
+									"    \"pageSize\": { \"type\": \"integer\" },\r",
+									"    \"page\": { \"type\": \"integer\" },\r",
+									"    \"totalPages\": { \"type\": \"integer\" },\r",
+									"    \"sortBy\": { \"type\": \"string\" },\r",
+									"    \"sortOrder\": { \"type\": \"string\" },\r",
+									"    \"startDate\": { \"type\": \"string\", \"format\": \"date\" },\r",
+									"    \"endDate\": { \"type\": \"string\", \"format\": \"date\" },\r",
+									"    \"items\": {\r",
+									"      \"type\": \"array\",\r",
+									"      \"items\": {\r",
+									"        \"type\": \"object\",\r",
+									"        \"properties\": {\r",
+									"          \"id\": { \"type\": \"string\" },\r",
+									"          \"beneficiaryName\": { \"type\": \"string\" },\r",
+									"          \"date\": { \"type\": \"string\", \"format\": \"date\" },\r",
+									"          \"direction\": { \"type\": \"string\" },\r",
+									"          \"amount\": { \"type\": \"number\" },\r",
+									"          \"description\": { \"type\": \"string\" },\r",
+									"          \"currency\": { \"type\": \"string\" },\r",
+									"          \"mcc\": { \"type\": \"integer\" },\r",
+									"          \"kind\": { \"type\": \"string\" },\r",
+									"          \"catCode\": { \"type\": \"string\" },\r",
+									"          \"splits\": {\r",
+									"            \"type\": \"array\",\r",
+									"            \"items\": {\r",
+									"              \"type\": \"object\",\r",
+									"              \"properties\": {\r",
+									"                \"id\": { \"type\": \"string\" },\r",
+									"                \"amount\": { \"type\": \"number\" },\r",
+									"                \"catCode\": { \"type\": \"string\" }\r",
+									"              },\r",
+									"              \"required\": [\"id\", \"amount\", \"catCode\"]\r",
+									"            }\r",
+									"          }\r",
+									"        },\r",
+									"        \"required\": [\"id\", \"date\", \"direction\", \"amount\", \"description\", \"currency\", \"kind\"]\r",
+									"      }\r",
+									"    }\r",
+									"  },\r",
+									"  \"required\": [\"totalCount\", \"pageSize\", \"page\", \"totalPages\", \"sortBy\", \"sortOrder\", \"startDate\", \"endDate\", \"items\"]\r",
+									"};\r",
+									"\r",
+									"pm.test(\"Response payload matches schema\", function () {\r",
+									"    const jsonData = pm.response.json();\r",
+									"    pm.expect(tv4.validate(jsonData, schema)).to.be.true;\r",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "page",
+									"value": "1",
+									"type": "text"
+								},
+								{
+									"key": "pageSize",
+									"value": "5",
+									"type": "text"
+								},
+								{
+									"key": "sortBy",
+									"value": "date",
+									"type": "text"
+								},
+								{
+									"key": "sortOrder",
+									"value": "Asc",
+									"type": "text"
+								},
+								{
+									"key": "kinds",
+									"value": "pmt,dep",
+									"type": "text"
+								},
+								{
+									"key": "startDate",
+									"value": "2021-11-20",
+									"type": "text"
+								},
+								{
+									"key": "endDate",
+									"value": "2021-11-21",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "http://localhost:5136/transactions?pageSize=50&startDate=2021-04-21&endDate=2021-04-21",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "5136",
+							"path": [
+								"transactions"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "",
+									"disabled": true
+								},
+								{
+									"key": "pageSize",
+									"value": "50"
+								},
+								{
+									"key": "sortBy",
+									"value": "mcc",
+									"disabled": true
+								},
+								{
+									"key": "sortOrder",
+									"value": "desc",
+									"disabled": true
+								},
+								{
+									"key": "kinds",
+									"value": " wdw,   dep,sal pmt",
+									"disabled": true
+								},
+								{
+									"key": "startDate",
+									"value": "2021-04-21"
+								},
+								{
+									"key": "endDate",
+									"value": "2021-04-21"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Categorize Transaction",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {\r",
+									"    pm.response.to.have.status(200);\r",
+									"});\r",
+									"\r",
+									"const schema = {\r",
+									"  \"type\": \"object\",\r",
+									"  \"properties\": {\r",
+									"    \"message\": {\r",
+									"      \"type\": \"string\"\r",
+									"    },\r",
+									"    \"result\": {\r",
+									"      \"type\": \"object\",\r",
+									"      \"properties\": {\r",
+									"        \"id\": {\r",
+									"          \"type\": \"string\"\r",
+									"        },\r",
+									"        \"beneficiaryName\": {\r",
+									"          \"type\": \"string\"\r",
+									"        },\r",
+									"        \"date\": {\r",
+									"          \"type\": \"string\",\r",
+									"          \"format\": \"date\"\r",
+									"        },\r",
+									"        \"direction\": {\r",
+									"          \"type\": \"string\"\r",
+									"        },\r",
+									"        \"amount\": {\r",
+									"          \"type\": \"number\"\r",
+									"        },\r",
+									"        \"description\": {\r",
+									"          \"type\": \"string\"\r",
+									"        },\r",
+									"        \"currency\": {\r",
+									"          \"type\": \"string\"\r",
+									"        },\r",
+									"        \"mcc\": {\r",
+									"          \"type\": \"integer\"\r",
+									"        },\r",
+									"        \"kind\": {\r",
+									"          \"type\": \"string\"\r",
+									"        },\r",
+									"        \"catCode\": {\r",
+									"          \"type\": \"string\"\r",
+									"        },\r",
+									"        \"splits\": {\r",
+									"          \"type\": \"array\",\r",
+									"          \"items\": {\r",
+									"            \"type\": \"object\",\r",
+									"            \"properties\": {\r",
+									"              \"id\": {\r",
+									"                \"type\": \"string\"\r",
+									"              },\r",
+									"              \"amount\": {\r",
+									"                \"type\": \"number\"\r",
+									"              },\r",
+									"              \"catCode\": {\r",
+									"                \"type\": \"string\"\r",
+									"              }\r",
+									"            },\r",
+									"            \"required\": [\"id\", \"amount\", \"catCode\"]\r",
+									"          }\r",
+									"        }\r",
+									"      },\r",
+									"      \"required\": [\"id\",  \"date\", \"direction\", \"amount\", \"description\", \"currency\", \"kind\", \"catCode\", \"splits\"]\r",
+									"    }\r",
+									"  },\r",
+									"  \"required\": [\"message\", \"result\"]\r",
+									"};\r",
+									"\r",
+									"pm.test(\"Response payload matches schema\", function () {\r",
+									"    const jsonData = pm.response.json();\r",
+									"    pm.expect(tv4.validate(jsonData, schema)).to.be.true;\r",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:5136/transactions/1/categorize?catCode=H",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "5136",
+							"path": [
+								"transactions",
+								"1",
+								"categorize"
+							],
+							"query": [
+								{
+									"key": "catCode",
+									"value": "H"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Categorize Many Transactions",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {\r",
+									"    pm.response.to.have.status(200);\r",
+									"});\r",
+									"\r",
+									"const schema = {\r",
+									"  \"type\": \"object\",\r",
+									"  \"properties\": {\r",
+									"    \"message\": {\r",
+									"      \"type\": \"string\"\r",
+									"    },\r",
+									"    \"result\": {\r",
+									"      \"type\": \"array\",\r",
+									"      \"items\": {\r",
+									"        \"type\": \"object\",\r",
+									"        \"properties\": {\r",
+									"          \"id\": {\r",
+									"            \"type\": \"string\"\r",
+									"          },\r",
+									"          \"beneficiaryName\": {\r",
+									"            \"type\": \"string\"\r",
+									"          },\r",
+									"          \"date\": {\r",
+									"            \"type\": \"string\",\r",
+									"            \"format\": \"date\"\r",
+									"          },\r",
+									"          \"direction\": {\r",
+									"            \"type\": \"string\"\r",
+									"          },\r",
+									"          \"amount\": {\r",
+									"            \"type\": \"number\"\r",
+									"          },\r",
+									"          \"description\": {\r",
+									"            \"type\": \"string\"\r",
+									"          },\r",
+									"          \"currency\": {\r",
+									"            \"type\": \"string\"\r",
+									"          },\r",
+									"          \"mcc\": {\r",
+									"            \"type\": \"integer\"\r",
+									"          },\r",
+									"          \"kind\": {\r",
+									"            \"type\": \"string\"\r",
+									"          },\r",
+									"          \"catCode\": {\r",
+									"            \"type\": \"string\"\r",
+									"          },\r",
+									"          \"splits\": {\r",
+									"            \"type\": \"array\",\r",
+									"            \"items\": {\r",
+									"              \"type\": \"object\",\r",
+									"              \"properties\": {\r",
+									"                \"id\": {\r",
+									"                  \"type\": \"string\"\r",
+									"                },\r",
+									"                \"amount\": {\r",
+									"                  \"type\": \"number\"\r",
+									"                },\r",
+									"                \"catCode\": {\r",
+									"                  \"type\": \"string\"\r",
+									"                }\r",
+									"              },\r",
+									"              \"required\": [\"id\", \"amount\", \"catCode\"]\r",
+									"            }\r",
+									"          }\r",
+									"        },\r",
+									"        \"required\": [\"id\", \"date\", \"direction\", \"amount\", \"description\", \"currency\", \"kind\", \"catCode\", \"splits\"]\r",
+									"      }\r",
+									"    }\r",
+									"  },\r",
+									"  \"required\": [\"message\", \"result\"]\r",
+									"}\r",
+									"\r",
+									"pm.test(\"Response payload matches schema\", function () {\r",
+									"    const jsonData = pm.response.json();\r",
+									"    pm.expect(tv4.validate(jsonData, schema)).to.be.true;\r",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:5136/transactions/categorize?catCode=H&ids=66229487, 10166729,  15122088 71233330,24419286",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "5136",
+							"path": [
+								"transactions",
+								"categorize"
+							],
+							"query": [
+								{
+									"key": "catCode",
+									"value": "H"
+								},
+								{
+									"key": "ids",
+									"value": "66229487, 10166729,  15122088 71233330,24419286"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Transaction by ID",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {\r",
+									"    pm.response.to.have.status(200);\r",
+									"});\r",
+									"\r",
+									"const schema = {\r",
+									"  \"type\": \"object\",\r",
+									"  \"properties\": {\r",
+									"    \"message\": {\r",
+									"      \"type\": \"string\"\r",
+									"    },\r",
+									"    \"result\": {\r",
+									"      \"type\": \"object\",\r",
+									"      \"properties\": {\r",
+									"        \"id\": {\r",
+									"          \"type\": \"string\"\r",
+									"        },\r",
+									"        \"beneficiaryName\": {\r",
+									"          \"type\": \"string\"\r",
+									"        },\r",
+									"        \"date\": {\r",
+									"          \"type\": \"string\",\r",
+									"          \"format\": \"date\"\r",
+									"        },\r",
+									"        \"direction\": {\r",
+									"          \"type\": \"string\"\r",
+									"        },\r",
+									"        \"amount\": {\r",
+									"          \"type\": \"number\"\r",
+									"        },\r",
+									"        \"description\": {\r",
+									"          \"type\": \"string\"\r",
+									"        },\r",
+									"        \"currency\": {\r",
+									"          \"type\": \"string\"\r",
+									"        },\r",
+									"        \"mcc\": {\r",
+									"          \"type\": \"integer\"\r",
+									"        },\r",
+									"        \"kind\": {\r",
+									"          \"type\": \"string\"\r",
+									"        },\r",
+									"        \"catCode\": {\r",
+									"          \"type\": \"string\"\r",
+									"        },\r",
+									"        \"splits\": {\r",
+									"          \"type\": \"array\",\r",
+									"          \"items\": {\r",
+									"            \"type\": \"object\",\r",
+									"            \"properties\": {\r",
+									"              \"id\": {\r",
+									"                \"type\": \"string\"\r",
+									"              },\r",
+									"              \"amount\": {\r",
+									"                \"type\": \"number\"\r",
+									"              },\r",
+									"              \"catCode\": {\r",
+									"                \"type\": \"string\"\r",
+									"              }\r",
+									"            },\r",
+									"            \"required\": [\"id\", \"amount\", \"catCode\"]\r",
+									"          }\r",
+									"        }\r",
+									"      },\r",
+									"      \"required\": [\"id\", \"date\", \"direction\", \"amount\", \"description\", \"currency\",  \"kind\", \"splits\"]\r",
+									"    }\r",
+									"  },\r",
+									"  \"required\": [\"message\", \"result\"]\r",
+									"};\r",
+									"\r",
+									"pm.test(\"Response payload matches schema\", function () {\r",
+									"    const jsonData = pm.response.json();\r",
+									"    pm.expect(tv4.validate(jsonData, schema)).to.be.true;\r",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:5136/transactions/1",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "5136",
+							"path": [
+								"transactions",
+								"1"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Split Transaction",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {\r",
+									"    pm.response.to.have.status(200);\r",
+									"});\r",
+									"\r",
+									"const schema = {\r",
+									"  \"type\": \"object\",\r",
+									"  \"properties\": {\r",
+									"    \"message\": {\r",
+									"      \"type\": \"string\"\r",
+									"    }\r",
+									"  },\r",
+									"  \"required\": [\"message\"]\r",
+									"}\r",
+									"\r",
+									"pm.test(\"Response payload matches schema\", function () {\r",
+									"    const jsonData = pm.response.json();\r",
+									"    pm.expect(tv4.validate(jsonData, schema)).to.be.true;\r",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"splits\": [\r\n        {\r\n            \"catcode\": \"A\",\r\n            \"amount\": \"87.1\"\r\n        },\r\n        {\r\n            \"catcode\": \"42\",\r\n            \"amount\": \"40\"  \r\n        },\r\n        {\r\n            \"catcode\": \"C\",\r\n            \"amount\": \"60.1\"  \r\n        }\r\n    ]\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:5136/transactions/1/split",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "5136",
+							"path": [
+								"transactions",
+								"1",
+								"split"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Autocategorize",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {\r",
+									"    pm.response.to.have.status(200);\r",
+									"});\r",
+									"\r",
+									"const schema = {\r",
+									"  \"type\": \"object\",\r",
+									"  \"properties\": {\r",
+									"    \"message\": {\r",
+									"      \"type\": \"string\"\r",
+									"    }\r",
+									"  },\r",
+									"  \"required\": [\"message\"]\r",
+									"}\r",
+									"\r",
+									"pm.test(\"Response payload matches schema\", function () {\r",
+									"    const jsonData = pm.response.json();\r",
+									"    pm.expect(tv4.validate(jsonData, schema)).to.be.true;\r",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:5136/transactions/auto-categorize",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "5136",
+							"path": [
+								"transactions",
+								"auto-categorize"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Categories",
+			"item": [
+				{
+					"name": "Import Categories from CSV",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {\r",
+									"    pm.response.to.have.status(200);\r",
+									"});\r",
+									"\r",
+									"const schema = {\r",
+									"  \"type\": \"object\",\r",
+									"  \"properties\": {\r",
+									"    \"message\": {\r",
+									"      \"type\": \"string\"\r",
+									"    },\r",
+									"    \"totalRowsAdded\": {\r",
+									"      \"type\": \"integer\"\r",
+									"    },\r",
+									"    \"totalRowsUpdated\": {\r",
+									"      \"type\": \"integer\"\r",
+									"    }\r",
+									"  },\r",
+									"  \"required\": [\"message\"]\r",
+									"}\r",
+									"\r",
+									"pm.test(\"Response payload matches schema\", function () {\r",
+									"    const jsonData = pm.response.json();\r",
+									"    pm.expect(tv4.validate(jsonData, schema)).to.be.true;\r",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "file",
+									"type": "file",
+									"src": "/C:/Users/koki_/Desktop/asseco/proektFiles/categories.csv",
+									"disabled": true
+								},
+								{
+									"key": "file",
+									"type": "file",
+									"src": "/C:/Users/koki_/Desktop/asseco/proektFiles/exampleCategories.csv"
+								},
+								{
+									"key": "file",
+									"type": "file",
+									"src": "/C:/Users/koki_/Desktop/stuff/dfestKarta.pdf",
+									"disabled": true
+								}
+							]
+						},
+						"url": {
+							"raw": "http://localhost:5136/categories/import",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "5136",
+							"path": [
+								"categories",
+								"import"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Category by Code",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {\r",
+									"    pm.response.to.have.status(200);\r",
+									"});\r",
+									"\r",
+									"const schema = {\r",
+									"  \"type\": \"object\",\r",
+									"  \"properties\": {\r",
+									"    \"message\": {\r",
+									"      \"type\": \"string\"\r",
+									"    },\r",
+									"    \"category\": {\r",
+									"      \"type\": \"object\",\r",
+									"      \"properties\": {\r",
+									"        \"code\": {\r",
+									"          \"type\": \"string\"\r",
+									"        },\r",
+									"        \"parentCode\": {\r",
+									"          \"type\": \"string\"\r",
+									"        },\r",
+									"        \"name\": {\r",
+									"          \"type\": \"string\"\r",
+									"        }\r",
+									"      },\r",
+									"      \"required\": [\"code\", \"parentCode\", \"name\"]\r",
+									"    }\r",
+									"  },\r",
+									"  \"required\": [\"message\", \"category\"]\r",
+									"}\r",
+									"\r",
+									"pm.test(\"Response payload matches schema\", function () {\r",
+									"    const jsonData = pm.response.json();\r",
+									"    pm.expect(tv4.validate(jsonData, schema)).to.be.true;\r",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:5136/categories/U",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "5136",
+							"path": [
+								"categories",
+								"U"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Categories",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {\r",
+									"    pm.response.to.have.status(200);\r",
+									"});\r",
+									"\r",
+									"const schema = {\r",
+									"  \"type\": \"object\",\r",
+									"  \"properties\": {\r",
+									"    \"message\": {\r",
+									"      \"type\": \"string\"\r",
+									"    },\r",
+									"    \"totalCount\": {\r",
+									"      \"type\": \"integer\"\r",
+									"    },\r",
+									"    \"pageSize\": {\r",
+									"      \"type\": \"integer\"\r",
+									"    },\r",
+									"    \"page\": {\r",
+									"      \"type\": \"integer\"\r",
+									"    },\r",
+									"    \"totalPages\": {\r",
+									"      \"type\": \"integer\"\r",
+									"    },\r",
+									"    \"items\": {\r",
+									"      \"type\": \"array\",\r",
+									"      \"items\": {\r",
+									"        \"type\": \"object\",\r",
+									"        \"properties\": {\r",
+									"          \"code\": {\r",
+									"            \"type\": \"string\"\r",
+									"          },\r",
+									"          \"parentCode\": {\r",
+									"            \"type\": \"string\"\r",
+									"          },\r",
+									"          \"name\": {\r",
+									"            \"type\": \"string\"\r",
+									"          }\r",
+									"        },\r",
+									"        \"required\": [\"code\", \"parentCode\", \"name\"]\r",
+									"      }\r",
+									"    }\r",
+									"  },\r",
+									"  \"required\": [\"message\", \"totalCount\", \"pageSize\", \"page\", \"totalPages\", \"items\"]\r",
+									"}\r",
+									"\r",
+									"pm.test(\"Response payload matches schema\", function () {\r",
+									"    const jsonData = pm.response.json();\r",
+									"    pm.expect(tv4.validate(jsonData, schema)).to.be.true;\r",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:5136/categories/?PageSize=100&SortBy=transactions&SortOrder=desc",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "5136",
+							"path": [
+								"categories",
+								""
+							],
+							"query": [
+								{
+									"key": "ParentId",
+									"value": "U",
+									"disabled": true
+								},
+								{
+									"key": "Page",
+									"value": "1",
+									"disabled": true
+								},
+								{
+									"key": "PageSize",
+									"value": "100"
+								},
+								{
+									"key": "SortBy",
+									"value": "transactions"
+								},
+								{
+									"key": "SortOrder",
+									"value": "desc"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Analytics",
+			"item": [
+				{
+					"name": "Analytics",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {\r",
+									"    pm.response.to.have.status(200);\r",
+									"});\r",
+									"\r",
+									"const schema = {\r",
+									"  \"type\": \"object\",\r",
+									"  \"properties\": {\r",
+									"    \"message\": {\r",
+									"      \"type\": \"string\"\r",
+									"    },\r",
+									"    \"groups\": {\r",
+									"      \"type\": \"array\",\r",
+									"      \"items\": {\r",
+									"        \"type\": \"object\",\r",
+									"        \"properties\": {\r",
+									"          \"catCode\": {\r",
+									"            \"type\": \"string\"\r",
+									"          },\r",
+									"          \"amount\": {\r",
+									"            \"type\": \"number\"\r",
+									"          },\r",
+									"          \"count\": {\r",
+									"            \"type\": \"integer\"\r",
+									"          }\r",
+									"        },\r",
+									"        \"required\": [\"catCode\", \"amount\", \"count\"]\r",
+									"      }\r",
+									"    }\r",
+									"  },\r",
+									"  \"required\": [\"message\", \"groups\"]\r",
+									"}\r",
+									"\r",
+									"pm.test(\"Response payload matches schema\", function () {\r",
+									"    const jsonData = pm.response.json();\r",
+									"    pm.expect(tv4.validate(jsonData, schema)).to.be.true;\r",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "Catcode",
+									"value": "C",
+									"type": "text",
+									"disabled": true
+								},
+								{
+									"key": "StartDate",
+									"value": "2021-11-20",
+									"type": "text"
+								},
+								{
+									"key": "EndDate",
+									"value": "2021-11-20",
+									"type": "text",
+									"disabled": true
+								},
+								{
+									"key": "Direction",
+									"value": "d",
+									"type": "text",
+									"disabled": true
+								}
+							]
+						},
+						"url": {
+							"raw": "http://localhost:5136/spending-analytics?Catcode=",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "5136",
+							"path": [
+								"spending-analytics"
+							],
+							"query": [
+								{
+									"key": "StartDate",
+									"value": "2021-01-20",
+									"disabled": true
+								},
+								{
+									"key": "EndDate",
+									"value": "tete",
+									"disabled": true
+								},
+								{
+									"key": "Direction",
+									"value": "asd",
+									"disabled": true
+								},
+								{
+									"key": "Catcode",
+									"value": ""
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	]
+}

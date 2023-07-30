@@ -20,8 +20,6 @@ namespace PFMdotnet.Models
 
         public DateOnly? EndDate { get; set; } = null;
 
-        public List<KindEnum>? Kinds { get; set; } = null;
-
         public List<T>? Items { get; set; } = null;
 
         public string? Message { get; set; } = null;

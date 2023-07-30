@@ -12,5 +12,6 @@ namespace PFMdotnet.Helpers.SearchReturnObjects.Transactions
         public List<KindEnum>? Kinds { get; set; }
         public DateOnly? StartDate { get; set; }
         public DateOnly? EndDate { get; set; }
+        public List<string>? Errors { get; set; } = null;
     }
 }

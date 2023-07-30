@@ -1,5 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using PFMdotnet.Models.Analytics;
+using PFMdotnet.Helpers.SearchReturnObjects.Analytics;
 using PFMdotnet.Services;
 
 namespace PFMdotnet.Controllers
@@ -26,7 +26,7 @@ namespace PFMdotnet.Controllers
 
             if (result.Errors != null)
             {
-                return NotFound(result);
+                return BadRequest(result);
             }
 
             return Ok(result);

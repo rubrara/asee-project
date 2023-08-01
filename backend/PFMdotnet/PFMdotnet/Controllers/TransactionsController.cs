@@ -45,7 +45,7 @@ namespace PFMdotnet.Controllers
 
             if (result.Errors != null)
             {
-                return BadRequest(result);
+                return StatusCode(404, result);
             }
 
             return Ok(result);
@@ -53,26 +53,26 @@ namespace PFMdotnet.Controllers
 
         [HttpPost]
         [Route("import")]
-        public async Task<IActionResult> ImportTransactions(IFormFile? file)
+        public async Task<IActionResult> ImportTransactions(IFormFile file)
         {
 
             if (file == null || file.Length == 0)
             {
-                return NotFound(new
+                return BadRequest(new
                 {
                     Message = "Uploading CSV file",
                     Error = "No file given. Please upload a CSV file.",
-                    StatusCode = StatusCodes.Status404NotFound
+                    StatusCode = StatusCodes.Status400BadRequest
                 });
             }
 
             if (!CsvManip.IsValidCsvFile(file))
             {
-                return StatusCode(403, new
+                return BadRequest(new
                 {
                     Message = "Uploading CSV file",
                     Error = "The file is not in CSV format.",
-                    StatusCode = StatusCodes.Status403Forbidden
+                    StatusCode = StatusCodes.Status400BadRequest
                 });
             }
 

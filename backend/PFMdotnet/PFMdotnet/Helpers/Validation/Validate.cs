@@ -126,11 +126,11 @@ namespace PFMdotnet.Helpers.Validation
 
             SortOrder sortOrder;
 
-            if (string.IsNullOrEmpty(searchParams.SortOrder))
+            /*if (string.IsNullOrEmpty(searchParams.SortOrder) || !(Enum.IsDefined(typeof(SortOrder), searchParams.SortOrder)))
             {
                 sortOrder = SortOrder.Asc;
             }
-            else if (!Enum.TryParse(searchParams.SortOrder, true, out sortOrder))
+            else*/ if (!Enum.TryParse(searchParams.SortOrder, true, out sortOrder))
             {
                 sortOrder=SortOrder.Asc;
             }

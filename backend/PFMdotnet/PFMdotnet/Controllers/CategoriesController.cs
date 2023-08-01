@@ -24,7 +24,7 @@ namespace PFMdotnet.Controllers
 
         [HttpPost]
         [Route("import")]
-        public async Task<IActionResult> ImportCategories(IFormFile? file)
+        public async Task<IActionResult> ImportCategories(IFormFile file)
         {
 
             if (file == null || file.Length == 0)
@@ -39,7 +39,7 @@ namespace PFMdotnet.Controllers
 
             if (!CsvManip.IsValidCsvFile(file))
             {
-                return StatusCode(403, new
+                return BadRequest(new
                 {
                     Message = "Uploading CSV file",
                     Error = "The file is not in CSV format.",
@@ -75,7 +75,7 @@ namespace PFMdotnet.Controllers
 
             if (result.Errors != null)
             {
-                return BadRequest(result);
+                return StatusCode(404, result);
             }
 
             return Ok(result);

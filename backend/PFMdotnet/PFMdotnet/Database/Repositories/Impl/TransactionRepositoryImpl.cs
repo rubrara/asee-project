@@ -88,8 +88,10 @@ namespace PFMdotnet.Database.Repositories.Impl
                 }
 
                 await _dbContext.SaveChangesAsync();
-            }
 
+            }
+            
+            
             return new AfterBulkAdd<Transaction> { 
                 Message = "Uploading Transactions form CSV file",
                 TotalRowsAdded = totalAdded == 0 ? null : totalAdded, 

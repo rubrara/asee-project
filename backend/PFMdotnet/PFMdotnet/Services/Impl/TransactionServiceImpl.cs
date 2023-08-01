@@ -343,7 +343,6 @@ namespace PFMdotnet.Services.Impl
             string json = File.ReadAllText("C:\\Users\\koki_\\source\\repos\\asee-project\\backend\\PFMdotnet\\PFMdotnet\\rules.json");
             var _rules = JsonConvert.DeserializeObject<List<CategorizationRule>>(json);
 
-            var result = new CategorizationReturn();
             var total = await (_transactionRepository.AutoCategorize(_rules));
 
             if (total == -1)
